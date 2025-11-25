@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/local-n8n/:match*",
+            "destination": "https://YOUR_NGROK_URL_HERE/:match*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
