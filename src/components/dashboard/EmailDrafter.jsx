@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Loader2, FileEdit, Edit3, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, FileEdit, Edit3, Sparkles, Send, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     Dialog,
@@ -11,6 +11,7 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
+    DialogFooter,
 } from "@/components/ui/dialog";
 
 const CONFIG = {
@@ -34,7 +35,8 @@ export default function EmailDrafter() {
     const [generatedEmail, setGeneratedEmail] = useState("");
     const [showDialog, setShowDialog] = useState(false);
     const [userSuggestion, setUserSuggestion] = useState("");
-    const [currentDraft, setCurrentDraft] = useState("");
+    const [resumeLink, setResumeLink] = useState(null);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const extractTextFromResponse = (data) => {
         if (typeof data === 'string') return data;
@@ -78,9 +80,23 @@ export default function EmailDrafter() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const getProxyUrl = (url) => {
+        if (!url) return url;
+        // If it's already a relative path, return it
+        if (url.startsWith('/')) return url;
+
+        // If it contains 'webhook', replace everything before it with /local-n8n
+        const webhookIndex = url.indexOf('/webhook');
+        if (webhookIndex !== -1) {
+            return '/local-n8n' + url.substring(webhookIndex);
+        }
+        return url;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        setShowSuccess(false);
 
         if (!formData.recipient_name || !formData.subject || !formData.intent) {
             setError("Please fill in all fields");
@@ -100,16 +116,33 @@ export default function EmailDrafter() {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to generate email. Please try again.");
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
             }
 
-            const data = await response.json();
-            const emailContent = extractTextFromResponse(data);
+            const text = await response.text();
+            console.log("Raw backend response:", text);
 
+            if (!text) {
+                throw new Error("Backend returned an empty response. Please check your n8n workflow output.");
+            }
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("JSON Parse Error:", e);
+                throw new Error(`Invalid JSON response from backend: ${text.substring(0, 100)}...`);
+            }
+
+            if (data.resumeLink) {
+                setResumeLink(data.resumeLink);
+            }
+
+            const emailContent = extractTextFromResponse(data);
             setGeneratedEmail(emailContent);
-            setCurrentDraft(emailContent);
             setShowDialog(true);
         } catch (err) {
+            console.error("Submission error:", err);
             setError(err.message || "An error occurred. Please try again.");
         } finally {
             setLoading(false);
@@ -118,20 +151,24 @@ export default function EmailDrafter() {
 
     const handleRefineDraft = async () => {
         if (!userSuggestion.trim()) return;
+        if (!resumeLink) {
+            setError("Session expired. Please start over.");
+            return;
+        }
 
         setLoading(true);
         setError(null);
 
         try {
-            const response = await fetch(currentWebhookUrl, {
+            const proxyResumeLink = getProxyUrl(resumeLink);
+            const response = await fetch(proxyResumeLink, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
-                    current_draft: currentDraft,
-                    suggestion: userSuggestion
+                    feedback: userSuggestion
                 }),
             });
 
@@ -140,12 +177,81 @@ export default function EmailDrafter() {
             }
 
             const data = await response.json();
-            const refinedEmail = extractTextFromResponse(data);
 
+            if (data.resumeLink) {
+                setResumeLink(data.resumeLink);
+            }
+
+            const refinedEmail = extractTextFromResponse(data);
             setGeneratedEmail(refinedEmail);
-            setCurrentDraft(refinedEmail);
             setUserSuggestion("");
         } catch (err) {
+            setError(err.message || "An error occurred. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendEmail = async () => {
+        if (!resumeLink) {
+            setError("Session expired. Please start over.");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const proxyResumeLink = getProxyUrl(resumeLink);
+            const response = await fetch(proxyResumeLink, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "true",
+                },
+                body: JSON.stringify({
+                    feedback: "Approved"
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to send email. Please try again.");
+            }
+
+            const text = await response.text();
+            console.log("Raw backend response (Send Email):", text);
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                // If it's not JSON, it might be a plain text success message
+                if (text.toLowerCase().includes("sent")) {
+                    setShowDialog(false);
+                    setShowSuccess(true);
+                    setFormData({ recipient_name: "", subject: "", intent: "" });
+                    setResumeLink(null);
+                    setGeneratedEmail("");
+                    return;
+                }
+                throw new Error(`Invalid response: ${text.substring(0, 100)}`);
+            }
+
+            // Check if backend returns a success message or no new resume link
+            const message = data.message || extractTextFromResponse(data);
+            if (!data.resumeLink || message.toLowerCase().includes("sent")) {
+                setShowDialog(false);
+                setShowSuccess(true);
+                setFormData({ recipient_name: "", subject: "", intent: "" });
+                setResumeLink(null);
+                setGeneratedEmail("");
+            } else {
+                // Unexpected state, but maybe they want to continue?
+                setGeneratedEmail(message);
+            }
+
+        } catch (err) {
+            console.error("Send Email Error:", err);
             setError(err.message || "An error occurred. Please try again.");
         } finally {
             setLoading(false);
@@ -233,6 +339,15 @@ export default function EmailDrafter() {
                 </Alert>
             )}
 
+            {showSuccess && (
+                <Alert className="border-green-500/50 bg-green-500/10 text-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <AlertDescription className="font-medium">
+                        Email sent successfully!
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border-white/10 text-white">
                     <DialogHeader>
@@ -269,13 +384,46 @@ export default function EmailDrafter() {
                                     onClick={handleRefineDraft}
                                     disabled={loading || !userSuggestion.trim()}
                                     variant="secondary"
-                                    className="bg-purple-500/20 text-purple-200 hover:bg-purple-500/30"
+                                    className="bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 whitespace-nowrap px-4"
                                 >
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                        <>
+                                            <Edit3 className="w-4 h-4 mr-2" />
+                                            Refine Draft
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
                     </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowDialog(false)}
+                            disabled={loading}
+                            className="text-slate-400 hover:text-white hover:bg-white/10"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSendEmail}
+                            disabled={loading}
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-none shadow-lg shadow-green-500/20"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Send Email
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
