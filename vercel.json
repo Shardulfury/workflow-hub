@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/local-n8n/:match*",
-            "destination": "https://YOUR_NGROK_URL_HERE/:match*"
+            "destination": "https://heriberto-inkless-unplunderously.ngrok-free.dev/:match*"
         },
         {
             "source": "/(.*)",
