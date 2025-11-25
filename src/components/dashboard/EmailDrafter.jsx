@@ -5,21 +5,36 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Loader2, FileEdit, Edit3, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
-const WEBHOOK_URL = "/local-n8n/webhook-test/emailDrafter";
+const CONFIG = {
+    isProduction: true, // Toggle this to switch environments
+    urls: {
+        production: "/local-n8n/webhook/emailDrafter",
+        test: "/local-n8n/webhook-test/emailDrafter"
+    }
+};
 
 export default function EmailDrafter() {
+    const currentWebhookUrl = CONFIG.isProduction ? CONFIG.urls.production : CONFIG.urls.test;
+
     const [formData, setFormData] = useState({
-        recipientName: "",
+        recipient_name: "",
         subject: "",
         intent: ""
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [draft, setDraft] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedContent, setEditedContent] = useState("");
-    const [suggestion, setSuggestion] = useState("");
+    const [generatedEmail, setGeneratedEmail] = useState("");
+    const [showDialog, setShowDialog] = useState(false);
+    const [userSuggestion, setUserSuggestion] = useState("");
+    const [currentDraft, setCurrentDraft] = useState("");
 
     const extractTextFromResponse = (data) => {
         if (typeof data === 'string') return data;
@@ -42,11 +57,9 @@ export default function EmailDrafter() {
         }
 
         if (data.email) return extractTextFromResponse(data.email);
-        if (data.draft) return extractTextFromResponse(data.draft);
         if (data.text) return extractTextFromResponse(data.text);
         if (data.content) return extractTextFromResponse(data.content);
         if (data.message) return extractTextFromResponse(data.message);
-        if (data.body) return extractTextFromResponse(data.body);
         if (data.result) return extractTextFromResponse(data.result);
         if (data.data) return extractTextFromResponse(data.data);
 
@@ -68,37 +81,34 @@ export default function EmailDrafter() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        setDraft(null);
-        setSuggestion("");
 
-        if (!formData.recipientName.trim() || !formData.subject.trim() || !formData.intent.trim()) {
-            setError("Please fill in all required fields");
+        if (!formData.recipient_name || !formData.subject || !formData.intent) {
+            setError("Please fill in all fields");
             return;
         }
 
         setLoading(true);
 
         try {
-            const response = await fetch(WEBHOOK_URL, {
+            const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "true",
                 },
-                body: JSON.stringify({
-                    recipient_name: formData.recipientName,
-                    subject: formData.subject,
-                    intent: formData.intent
-                }),
+                body: JSON.stringify(formData),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to draft email. Please try again.");
+                throw new Error("Failed to generate email. Please try again.");
             }
 
             const data = await response.json();
-            const extractedText = extractTextFromResponse(data);
-            setDraft(extractedText);
-            setEditedContent(extractedText);
+            const emailContent = extractTextFromResponse(data);
+
+            setGeneratedEmail(emailContent);
+            setCurrentDraft(emailContent);
+            setShowDialog(true);
         } catch (err) {
             setError(err.message || "An error occurred. Please try again.");
         } finally {
@@ -106,48 +116,35 @@ export default function EmailDrafter() {
         }
     };
 
-    const handleEdit = () => {
-        setIsEditing(true);
-    };
-
-    const handleSave = () => {
-        setDraft(editedContent);
-        setIsEditing(false);
-    };
-
-    const handleContinue = async () => {
-        if (!suggestion.trim()) {
-            setError("Please enter your suggestion or confirmation");
-            return;
-        }
+    const handleRefineDraft = async () => {
+        if (!userSuggestion.trim()) return;
 
         setLoading(true);
         setError(null);
 
         try {
-            const response = await fetch(WEBHOOK_URL, {
+            const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
-                    recipient_name: formData.recipientName,
-                    subject: formData.subject,
-                    intent: formData.intent,
-                    current_draft: editedContent,
-                    suggestion: suggestion
+                    current_draft: currentDraft,
+                    suggestion: userSuggestion
                 }),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to process your request. Please try again.");
+                throw new Error("Failed to refine draft. Please try again.");
             }
 
             const data = await response.json();
-            const extractedText = extractTextFromResponse(data);
-            setDraft(extractedText);
-            setEditedContent(extractedText);
-            setSuggestion("");
+            const refinedEmail = extractTextFromResponse(data);
+
+            setGeneratedEmail(refinedEmail);
+            setCurrentDraft(refinedEmail);
+            setUserSuggestion("");
         } catch (err) {
             setError(err.message || "An error occurred. Please try again.");
         } finally {
@@ -156,56 +153,56 @@ export default function EmailDrafter() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
+            {!CONFIG.isProduction && (
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10 animate-pulse">
+                    TEST MODE
+                </div>
+            )}
             <p className="text-slate-300 leading-relaxed">
-                Enter recipient details and let AI draft a professional email for you
+                Generate professional emails instantly with AI assistance
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="recipient-name" className="text-white font-medium">
-                        Recipient's Name <span className="text-red-400">*</span>
+                    <Label htmlFor="recipient" className="text-white font-medium">
+                        Recipient Name
                     </Label>
                     <Input
-                        id="recipient-name"
-                        type="text"
-                        placeholder="e.g., John Smith"
-                        value={formData.recipientName}
-                        onChange={(e) => handleChange("recipientName", e.target.value)}
+                        id="recipient"
+                        placeholder="e.g., John Doe"
+                        value={formData.recipient_name}
+                        onChange={(e) => handleChange("recipient_name", e.target.value)}
                         disabled={loading}
-                        className="text-lg py-6 bg-white/5 border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
-                        required
+                        className="py-6 bg-white/5 border-white/10 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all duration-300"
                     />
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="subject" className="text-white font-medium">
-                        Subject <span className="text-red-400">*</span>
+                        Subject
                     </Label>
                     <Input
                         id="subject"
-                        type="text"
-                        placeholder="e.g., Project Update Meeting"
+                        placeholder="e.g., Project Update"
                         value={formData.subject}
                         onChange={(e) => handleChange("subject", e.target.value)}
                         disabled={loading}
-                        className="text-lg py-6 bg-white/5 border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
-                        required
+                        className="py-6 bg-white/5 border-white/10 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all duration-300"
                     />
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="intent" className="text-white font-medium">
-                        Intent <span className="text-red-400">*</span>
+                        What is this email about?
                     </Label>
                     <Textarea
                         id="intent"
-                        placeholder="e.g., Request a meeting to discuss Q4 project deliverables"
+                        placeholder="Describe the main points you want to cover..."
                         value={formData.intent}
                         onChange={(e) => handleChange("intent", e.target.value)}
                         disabled={loading}
-                        className="min-h-[100px] bg-white/5 border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
-                        required
+                        className="min-h-[120px] bg-white/5 border-white/10 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all duration-300"
                     />
                 </div>
 
@@ -213,17 +210,17 @@ export default function EmailDrafter() {
                     type="submit"
                     disabled={loading}
                     variant="glow"
-                    className="w-full text-lg py-6 transition-all duration-300 bg-gradient-to-r from-green-500/80 to-emerald-500/80 hover:from-green-500 hover:to-emerald-500 border-none shadow-lg shadow-emerald-500/20"
+                    className="w-full text-lg py-6 transition-all duration-300 bg-gradient-to-r from-purple-500/80 to-pink-500/80 hover:from-purple-500 hover:to-pink-500 border-none shadow-lg shadow-purple-500/20"
                 >
                     {loading ? (
                         <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Drafting Email...
+                            Generating Draft...
                         </>
                     ) : (
                         <>
-                            <FileEdit className="w-5 h-5 mr-2" />
-                            Draft Email
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            Generate Email
                         </>
                     )}
                 </Button>
@@ -236,92 +233,51 @@ export default function EmailDrafter() {
                 </Alert>
             )}
 
-            {draft && (
-                <div className="glass-panel rounded-xl p-6 border-emerald-500/30 animate-slide-up">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-emerald-400" />
-                            <h3 className="text-xl font-bold text-white">Your Draft Email</h3>
-                        </div>
-                        {!isEditing && (
-                            <Button
-                                onClick={handleEdit}
-                                variant="ghost"
-                                className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                            >
-                                <Edit3 className="w-4 h-4 mr-2" />
-                                Edit
-                            </Button>
-                        )}
-                    </div>
+            <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border-white/10 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-2xl text-white">
+                            <FileEdit className="w-6 h-6 text-purple-400" />
+                            Generated Draft
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            Review and refine your email draft below
+                        </DialogDescription>
+                    </DialogHeader>
 
-                    {isEditing ? (
-                        <div className="space-y-4">
-                            <Textarea
-                                value={editedContent}
-                                onChange={(e) => setEditedContent(e.target.value)}
-                                className="min-h-[300px] text-slate-300 leading-relaxed bg-white/5 border-white/10 focus:border-emerald-500/50"
-                            />
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={handleSave}
-                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                >
-                                    Save Changes
-                                </Button>
-                                <Button
-                                    onClick={() => setIsEditing(false)}
-                                    variant="ghost"
-                                    className="text-slate-400 hover:text-white hover:bg-white/10"
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
+                    <div className="space-y-6 mt-4">
+                        <div className="p-5 rounded-lg bg-white/5 border border-white/10">
+                            <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                {generatedEmail}
+                            </p>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="prose prose-invert max-w-none p-4 rounded-lg bg-white/5 border border-white/10">
-                                <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                    {editedContent}
-                                </p>
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="suggestion" className="text-white font-medium">
-                                    Suggestion/Confirmation
-                                </Label>
-                                <Textarea
+                        <div className="space-y-2">
+                            <Label htmlFor="suggestion" className="text-white font-medium">
+                                Refine Draft
+                            </Label>
+                            <div className="flex gap-2">
+                                <Input
                                     id="suggestion"
-                                    placeholder="e.g., Make it more formal, add a call to action, or confirm to send as is"
-                                    value={suggestion}
-                                    onChange={(e) => setSuggestion(e.target.value)}
+                                    placeholder="e.g., Make it more formal, shorter, etc."
+                                    value={userSuggestion}
+                                    onChange={(e) => setUserSuggestion(e.target.value)}
                                     disabled={loading}
-                                    className="min-h-[100px] bg-white/5 border-white/10 focus:border-emerald-500/50"
+                                    className="bg-white/5 border-white/10 focus:border-purple-500/50"
                                 />
+                                <Button
+                                    onClick={handleRefineDraft}
+                                    disabled={loading || !userSuggestion.trim()}
+                                    variant="secondary"
+                                    className="bg-purple-500/20 text-purple-200 hover:bg-purple-500/30"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
+                                </Button>
                             </div>
-
-                            <Button
-                                onClick={handleContinue}
-                                disabled={loading}
-                                variant="glow"
-                                className="w-full text-lg py-6 transition-all duration-300 bg-gradient-to-r from-green-500/80 to-emerald-500/80 hover:from-green-500 hover:to-emerald-500 border-none shadow-lg shadow-emerald-500/20"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-5 h-5 mr-2" />
-                                        Continue
-                                    </>
-                                )}
-                            </Button>
                         </div>
-                    )}
-                </div>
-            )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

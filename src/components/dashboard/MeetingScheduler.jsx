@@ -13,9 +13,17 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
-const WEBHOOK_URL = "/local-n8n/webhook-test/meetingScheduler";
+const CONFIG = {
+    isProduction: true, // Toggle this to switch environments
+    urls: {
+        production: "/local-n8n/webhook/meetingScheduler",
+        test: "/local-n8n/webhook-test/meetingScheduler"
+    }
+};
 
 export default function MeetingScheduler() {
+    const currentWebhookUrl = CONFIG.isProduction ? CONFIG.urls.production : CONFIG.urls.test;
+
     const [formData, setFormData] = useState({
         meetingTitle: "",
         meetingDate: "",
@@ -86,7 +94,7 @@ export default function MeetingScheduler() {
         setLoading(true);
 
         try {
-            const response = await fetch(WEBHOOK_URL, {
+            const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -141,7 +149,27 @@ export default function MeetingScheduler() {
         console.log("Sending request to:", resumeLink);
 
         // Use proxy for resumeLink to avoid CORS
-        const proxyResumeLink = resumeLink.replace("http://localhost:5678", "/local-n8n");
+        // Note: For production, we assume the resumeLink is also proxied or handled correctly.
+        // If n8n returns a full URL, we need to replace the domain with our proxy.
+        // Since we are using /local-n8n for both test and prod (via ngrok), we can just replace the domain.
+        // However, if n8n returns the ngrok URL directly, we still need to proxy it to avoid CORS on the frontend.
+
+        // Simple heuristic: Replace protocol + domain with proxy path
+        let proxyResumeLink = resumeLink;
+        if (resumeLink.startsWith("http")) {
+            // Replace everything up to the third slash (e.g. http://localhost:5678 or https://ngrok.url) with /local-n8n
+            // But we need to be careful. The safest bet is to replace the known n8n base URL.
+            // Since we don't know the dynamic ngrok URL n8n might return, we might need to rely on the user's config.
+            // Actually, the previous logic was replacing localhost:5678.
+            // If n8n is behind ngrok, it might return the ngrok URL.
+            // Let's try to be smart: if it contains 'webhook', replace everything before it with /local-n8n
+
+            const webhookIndex = resumeLink.indexOf('/webhook');
+            if (webhookIndex !== -1) {
+                proxyResumeLink = '/local-n8n' + resumeLink.substring(webhookIndex);
+            }
+        }
+
         console.log("Using proxy URL:", proxyResumeLink);
 
         setLoading(true);
@@ -206,7 +234,12 @@ export default function MeetingScheduler() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
+            {!CONFIG.isProduction && (
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10 animate-pulse">
+                    TEST MODE
+                </div>
+            )}
             <p className="text-slate-300 leading-relaxed">
                 Schedule meetings effortlessly with automated coordination
             </p>

@@ -1,42 +1,37 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Sparkles, Upload, File, X } from "lucide-react";
+import { AlertCircle, Loader2, Upload, FileVideo, CheckCircle2, Play } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { base44 } from "@/api/base44Client";
 
-const WEBHOOK_URL = "/local-n8n/webhook-test/video-summary";
+const CONFIG = {
+    isProduction: true, // Toggle this to switch environments
+    urls: {
+        production: "/local-n8n/webhook/video-summary",
+        test: "/local-n8n/webhook-test/video-summary"
+    }
+};
 
 export default function VideoSummarizer() {
+    const currentWebhookUrl = CONFIG.isProduction ? CONFIG.urls.production : CONFIG.urls.test;
+
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [summary, setSummary] = useState(null);
-    const [videoUrl, setVideoUrl] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const extractTextFromResponse = (data) => {
         if (typeof data === 'string') return data;
         if (data === null || data === undefined) return '';
 
-        // Priority: Check for 'output' field first (n8n workflow output)
         if (data.output !== undefined) {
             if (typeof data.output === 'string') return data.output;
             return extractTextFromResponse(data.output);
         }
 
-        // Handle {parts, role} structure
-        if (data.parts) {
-            if (Array.isArray(data.parts)) {
-                return data.parts.map(part => {
-                    if (typeof part === 'string') return part;
-                    if (part.text) return part.text;
-                    return JSON.stringify(part);
-                }).join('\n');
-            }
-            if (typeof data.parts === 'string') return data.parts;
-        }
-
-        // Handle other common text fields
         if (data.summary) return extractTextFromResponse(data.summary);
         if (data.text) return extractTextFromResponse(data.text);
         if (data.content) return extractTextFromResponse(data.content);
@@ -44,12 +39,10 @@ export default function VideoSummarizer() {
         if (data.result) return extractTextFromResponse(data.result);
         if (data.data) return extractTextFromResponse(data.data);
 
-        // Handle arrays
         if (Array.isArray(data)) {
             return data.map(item => extractTextFromResponse(item)).join('\n\n');
         }
 
-        // Last resort - stringify
         if (typeof data === 'object') {
             return JSON.stringify(data, null, 2);
         }
@@ -60,203 +53,164 @@ export default function VideoSummarizer() {
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            if (!selectedFile.type.startsWith('video/')) {
-                setError("Please select a valid video file");
+            if (selectedFile.size > 100 * 1024 * 1024) { // 100MB limit
+                setError("File size exceeds 100MB limit");
                 return;
             }
             setFile(selectedFile);
             setError(null);
             setSummary(null);
-            setVideoUrl(null);
         }
-    };
-
-    const removeFile = () => {
-        setFile(null);
-        setSummary(null);
-        setVideoUrl(null);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
-        setSummary(null);
-
         if (!file) {
             setError("Please select a video file");
             return;
         }
 
         setLoading(true);
+        setError(null);
+        setUploadProgress(0);
 
         try {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file });
-            setVideoUrl(file_url);
-
-            // Set up timeout for long-running operations (60 seconds)
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-            // Create FormData to send the actual file binary
             const formData = new FormData();
-            formData.append('data', file); // Matches 'Field Name for Binary Data' in n8n
+            formData.append('data', file);
 
-            const response = await fetch(WEBHOOK_URL, {
+            // Simulate upload progress
+            const progressInterval = setInterval(() => {
+                setUploadProgress(prev => Math.min(prev + 10, 90));
+            }, 500);
+
+            const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
-                    // Content-Type is automatically set by browser for FormData
                     "ngrok-skip-browser-warning": "true",
                 },
                 body: formData,
-                signal: controller.signal,
             });
 
-            clearTimeout(timeoutId);
+            clearInterval(progressInterval);
+            setUploadProgress(100);
 
             if (!response.ok) {
-                try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || "Failed to process video. Please try again.");
-                } catch (parseError) {
-                    throw new Error("Failed to process video. Please try again.");
-                }
+                throw new Error(`Server responded with a status of ${response.status}`);
             }
 
-            // Try to parse JSON response, handle HTML error pages
-            let data;
-            try {
-                data = await response.json();
-            } catch (parseError) {
-                throw new Error("Server returned an invalid response. The video might be too long to process.");
-            }
-
-            // Extract summary - prioritize data.summary field
-            const extractedText = data.summary || extractTextFromResponse(data);
-            setSummary(extractedText);
+            const data = await response.json();
+            const summaryText = extractTextFromResponse(data);
+            setSummary(summaryText);
         } catch (err) {
-            if (err.name === 'AbortError') {
-                setError("Request timed out. Please try a shorter video (under 5 minutes recommended).");
-            } else {
-                setError(err.message || "An error occurred. Please try again.");
-            }
+            console.error("Upload error:", err);
+            setError(err.message || "Failed to process video. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
+            {!CONFIG.isProduction && (
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10 animate-pulse">
+                    TEST MODE
+                </div>
+            )}
             <p className="text-slate-300 leading-relaxed">
                 Upload a video file and receive an AI-generated summary
             </p>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                     <Label htmlFor="video-file" className="text-white font-medium">
                         Video File
                     </Label>
-                    <div className="relative">
-                        <input
+                    <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-cyan-500/50 hover:bg-white/5 transition-all duration-300 group cursor-pointer relative overflow-hidden">
+                        <Input
                             id="video-file"
                             type="file"
                             accept="video/*"
                             onChange={handleFileChange}
                             disabled={loading}
-                            className="hidden"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        {!file ? (
-                            <label
-                                htmlFor="video-file"
-                                className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-white/20 rounded-xl cursor-pointer bg-white/5 hover:bg-white/10 hover:border-neon-blue/50 transition-all duration-300 group"
-                            >
-                                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                    <Upload className="w-6 h-6 text-slate-300 group-hover:text-neon-blue" />
-                                </div>
-                                <span className="text-slate-300 font-medium group-hover:text-white">Click to upload video</span>
-                                <span className="text-slate-500 text-sm mt-1">MP4, AVI, MOV, etc.</span>
-                            </label>
-                        ) : (
-                            <div className="flex items-center justify-between p-4 border border-white/10 rounded-xl bg-white/5 backdrop-blur-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-neon-blue/20 rounded-lg flex items-center justify-center">
-                                        <File className="w-5 h-5 text-neon-blue" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-white">{file.name}</p>
-                                        <p className="text-sm text-slate-400">
-                                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                                        </p>
-                                    </div>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={removeFile}
-                                    disabled={loading}
-                                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                                >
-                                    <X className="w-5 h-5" />
-                                </Button>
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="p-4 rounded-full bg-white/5 group-hover:bg-cyan-500/20 transition-colors duration-300">
+                                <Upload className="w-8 h-8 text-slate-400 group-hover:text-cyan-400 transition-colors duration-300" />
                             </div>
-                        )}
+                            <div className="space-y-1">
+                                <p className="text-lg font-medium text-white">
+                                    {file ? file.name : "Drop your video here"}
+                                </p>
+                                <p className="text-sm text-slate-400">
+                                    {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "or click to browse"}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {file && (
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="p-2 bg-cyan-500/20 rounded-lg">
+                            <FileVideo className="w-6 h-6 text-cyan-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium truncate">{file.name}</p>
+                            <p className="text-xs text-slate-400">Ready to upload</p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFile(null)}
+                            className="text-slate-400 hover:text-white"
+                        >
+                            ×
+                        </Button>
+                    </div>
+                )}
 
                 <Button
                     type="submit"
                     disabled={loading || !file}
                     variant="glow"
-                    className="w-full text-lg py-6 transition-all duration-300"
+                    className="w-full text-lg py-6 transition-all duration-300 bg-gradient-to-r from-cyan-500/80 to-blue-500/80 hover:from-cyan-500 hover:to-blue-500 border-none shadow-lg shadow-cyan-500/20"
                 >
                     {loading ? (
                         <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Processing Video...
+                            {uploadProgress < 100 ? `Uploading ${uploadProgress}%...` : "Processing..."}
                         </>
                     ) : (
                         <>
-                            <Sparkles className="w-5 h-5 mr-2" />
+                            <Play className="w-5 h-5 mr-2" />
                             Summarize Video
                         </>
                     )}
                 </Button>
             </form>
 
-            {
-                error && (
-                    <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-200">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )
-            }
+            {error && (
+                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-200">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
 
-            {
-                summary && (
-                    <div className="mt-8 animate-slide-up">
-                        <div className="glass-panel rounded-xl p-6 border-neon-blue/30">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Sparkles className="w-5 h-5 text-neon-blue" />
-                                <h3 className="text-xl font-bold text-white">Here is the Summary</h3>
-                            </div>
-                            {videoUrl && (
-                                <video
-                                    controls
-                                    className="w-full rounded-lg mb-6 shadow-lg border border-white/10"
-                                    src={videoUrl}
-                                >
-                                    Your browser does not support the video tag.
-                                </video>
-                            )}
-                            <div className="prose prose-invert max-w-none">
-                                <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                    {summary}
-                                </p>
-                            </div>
-                        </div>
+            {summary && (
+                <div className="glass-panel rounded-xl p-6 border-cyan-500/30 animate-slide-up">
+                    <div className="flex items-center gap-2 mb-4">
+                        <CheckCircle2 className="w-5 h-5 text-cyan-400" />
+                        <h3 className="text-xl font-bold text-white">Video Summary</h3>
                     </div>
-                )
-            }
-        </div >
+                    <div className="prose prose-invert max-w-none">
+                        <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
+                            {summary}
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
