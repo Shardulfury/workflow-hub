@@ -16,8 +16,8 @@ import {
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "/local-n8n/webhook/meetingScheduler",
-        test: "/local-n8n/webhook-test/meetingScheduler"
+        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/meetingScheduler",
+        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/meetingScheduler"
     }
 };
 
@@ -98,7 +98,6 @@ export default function MeetingScheduler() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
                     meeting_title: formData.meetingTitle,
@@ -148,22 +147,15 @@ export default function MeetingScheduler() {
 
         console.log("Sending request to:", resumeLink);
 
-        // Use proxy for resumeLink to avoid CORS
-        // Note: For production, we assume the resumeLink is also proxied or handled correctly.
-        // If n8n returns a full URL, we need to replace the domain with our proxy.
-        // Since we are using /local-n8n for both test and prod (via ngrok), we can just replace the domain.
-        // However, if n8n returns the ngrok URL directly, we still need to proxy it to avoid CORS on the frontend.
-
-        // Simple heuristic: Replace protocol + domain with proxy path
+        // Proxy logic for Cloudflare/Localhost
         let proxyResumeLink = resumeLink;
-        if (resumeLink.startsWith("http")) {
-            // Replace everything up to the third slash (e.g. http://localhost:5678 or https://ngrok.url) with /local-n8n
-            // But we need to be careful. The safest bet is to replace the known n8n base URL.
-            // Since we don't know the dynamic ngrok URL n8n might return, we might need to rely on the user's config.
-            // Actually, the previous logic was replacing localhost:5678.
-            // If n8n is behind ngrok, it might return the ngrok URL.
-            // Let's try to be smart: if it contains 'webhook', replace everything before it with /local-n8n
 
+        // If it's the public Cloudflare URL, use it directly (HTTPS is safe)
+        if (resumeLink.includes('trycloudflare.com')) {
+            proxyResumeLink = resumeLink;
+        }
+        // If it's localhost, use the proxy
+        else if (resumeLink.includes('localhost')) {
             const webhookIndex = resumeLink.indexOf('/webhook');
             if (webhookIndex !== -1) {
                 proxyResumeLink = '/local-n8n' + resumeLink.substring(webhookIndex);
@@ -180,7 +172,6 @@ export default function MeetingScheduler() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
                     feedback: userInstructions

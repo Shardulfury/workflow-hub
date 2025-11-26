@@ -17,8 +17,8 @@ import {
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://heriberto-inkless-unplunderously.ngrok-free.dev/webhook/emailDrafter",
-        test: "https://heriberto-inkless-unplunderously.ngrok-free.dev/webhook-test/emailDrafter"
+        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/emailDrafter",
+        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/emailDrafter"
     }
 };
 
@@ -83,8 +83,8 @@ export default function EmailDrafter() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public ngrok URL, use it directly (HTTPS is safe)
-        if (url.includes('ngrok-free.dev')) {
+        // If it's the public Cloudflare URL, use it directly (HTTPS is safe)
+        if (url.includes('trycloudflare.com')) {
             return url;
         }
 
@@ -120,7 +120,6 @@ export default function EmailDrafter() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify(formData),
             });
@@ -175,7 +174,6 @@ export default function EmailDrafter() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
                     feedback: userSuggestion
@@ -217,7 +215,6 @@ export default function EmailDrafter() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
                     feedback: "Approved"

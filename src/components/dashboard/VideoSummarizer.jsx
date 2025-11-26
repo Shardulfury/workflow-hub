@@ -9,8 +9,8 @@ import { base44 } from "@/api/base44Client";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "/local-n8n/webhook/video-summary",
-        test: "/local-n8n/webhook-test/video-summary"
+        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/video-summary",
+        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/video-summary"
     }
 };
 
@@ -86,7 +86,7 @@ export default function VideoSummarizer() {
             const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
-                    "ngrok-skip-browser-warning": "true",
+                    // No headers needed for FormData, browser sets Content-Type automatically
                 },
                 body: formData,
             });

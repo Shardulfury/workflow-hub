@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "/local-n8n/webhook/outlookManager",
-        test: "/local-n8n/webhook-test/outlookManager"
+        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/outlookManager",
+        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/outlookManager"
     }
 };
 
@@ -39,7 +39,6 @@ export default function OutlookManager() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({ query }),
             });

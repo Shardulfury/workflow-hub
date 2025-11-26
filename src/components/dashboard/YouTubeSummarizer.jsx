@@ -8,8 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "/local-n8n/webhook/youtubeSummarizer",
-        test: "/local-n8n/webhook-test/youtubeSummarizer"
+        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/youtubeSummarizer",
+        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/youtubeSummarizer"
     }
 };
 
@@ -76,7 +76,6 @@ export default function YouTubeSummarizer() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({ youtube_url: url }),
             });
