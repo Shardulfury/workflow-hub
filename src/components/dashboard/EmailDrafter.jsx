@@ -83,9 +83,15 @@ export default function EmailDrafter() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Cloudflare URL, use it directly (HTTPS is safe)
+        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
         if (url.includes('trycloudflare.com')) {
-            return url;
+            try {
+                const urlObj = new URL(url);
+                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
+            } catch (e) {
+                console.error("Error parsing URL:", e);
+                return url;
+            }
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS

@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/local-n8n/:match*",
-            "destination": "https://heriberto-inkless-unplunderously.ngrok-free.dev/:match*"
+            "destination": "https://print-economic-correction-apr.trycloudflare.com/:match*"
         },
         {
             "source": "/(.*)",

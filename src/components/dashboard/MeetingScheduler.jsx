@@ -145,23 +145,6 @@ export default function MeetingScheduler() {
             return;
         }
 
-        console.log("Sending request to:", resumeLink);
-
-        // Proxy logic for Cloudflare/Localhost
-        let proxyResumeLink = resumeLink;
-
-        // If it's the public Cloudflare URL, use it directly (HTTPS is safe)
-        if (resumeLink.includes('trycloudflare.com')) {
-            proxyResumeLink = resumeLink;
-        }
-        // If it's localhost, use the proxy
-        else if (resumeLink.includes('localhost')) {
-            const webhookIndex = resumeLink.indexOf('/webhook');
-            if (webhookIndex !== -1) {
-                proxyResumeLink = '/local-n8n' + resumeLink.substring(webhookIndex);
-            }
-        }
-
         console.log("Using proxy URL:", proxyResumeLink);
 
         setLoading(true);
