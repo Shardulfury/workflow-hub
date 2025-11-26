@@ -17,8 +17,8 @@ import {
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "/local-n8n/webhook/emailDrafter",
-        test: "/local-n8n/webhook-test/emailDrafter"
+        production: "https://heriberto-inkless-unplunderously.ngrok-free.dev/webhook/emailDrafter",
+        test: "https://heriberto-inkless-unplunderously.ngrok-free.dev/webhook-test/emailDrafter"
     }
 };
 
@@ -82,14 +82,24 @@ export default function EmailDrafter() {
 
     const getProxyUrl = (url) => {
         if (!url) return url;
+
+        // If it's the public ngrok URL, use it directly (HTTPS is safe)
+        if (url.includes('ngrok-free.dev')) {
+            return url;
+        }
+
+        // If it's localhost, use the proxy to avoid mixed content/CORS
+        if (url.includes('localhost')) {
+            // If it contains 'webhook', replace everything before it with /local-n8n
+            const webhookIndex = url.indexOf('/webhook');
+            if (webhookIndex !== -1) {
+                return '/local-n8n' + url.substring(webhookIndex);
+            }
+        }
+
         // If it's already a relative path, return it
         if (url.startsWith('/')) return url;
 
-        // If it contains 'webhook', replace everything before it with /local-n8n
-        const webhookIndex = url.indexOf('/webhook');
-        if (webhookIndex !== -1) {
-            return '/local-n8n' + url.substring(webhookIndex);
-        }
         return url;
     };
 
