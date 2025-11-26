@@ -122,7 +122,8 @@ export default function EmailDrafter() {
         setLoading(true);
 
         try {
-            const response = await fetch(currentWebhookUrl, {
+            const proxyUrl = getProxyUrl(currentWebhookUrl);
+            const response = await fetch(proxyUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

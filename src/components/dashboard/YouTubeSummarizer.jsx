@@ -59,6 +59,35 @@ export default function YouTubeSummarizer() {
         return String(data);
     };
 
+    const getProxyUrl = (url) => {
+        if (!url) return url;
+
+        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
+        if (url.includes('trycloudflare.com')) {
+            try {
+                const urlObj = new URL(url);
+                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
+            } catch (e) {
+                console.error("Error parsing URL:", e);
+                return url;
+            }
+        }
+
+        // If it's localhost, use the proxy to avoid mixed content/CORS
+        if (url.includes('localhost')) {
+            // If it contains 'webhook', replace everything before it with /local-n8n
+            const webhookIndex = url.indexOf('/webhook');
+            if (webhookIndex !== -1) {
+                return '/local-n8n' + url.substring(webhookIndex);
+            }
+        }
+
+        // If it's already a relative path, return it
+        if (url.startsWith('/')) return url;
+
+        return url;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -72,7 +101,8 @@ export default function YouTubeSummarizer() {
         setLoading(true);
 
         try {
-            const response = await fetch(currentWebhookUrl, {
+            const proxyUrl = getProxyUrl(currentWebhookUrl);
+            const response = await fetch(proxyUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
