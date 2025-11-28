@@ -51,9 +51,15 @@ export default function YouTubeSummarizer() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        // Use Vercel proxy for Tailscale URLs to avoid CORS issues
         if (url.includes('.ts.net')) {
-            return url;
+            try {
+                const urlObj = new URL(url);
+                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
+            } catch (e) {
+                console.error("Invalid URL:", url);
+                return url;
+            }
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS

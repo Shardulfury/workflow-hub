@@ -39,8 +39,6 @@ export default function MeetingScheduler() {
     const [resumeLink, setResumeLink] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
 
-
-
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -48,9 +46,15 @@ export default function MeetingScheduler() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        // Use Vercel proxy for Tailscale URLs to avoid CORS issues
         if (url.includes('.ts.net')) {
-            return url;
+            try {
+                const urlObj = new URL(url);
+                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
+            } catch (e) {
+                console.error("Invalid URL:", url);
+                return url;
+            }
         }
 
         // If it's already a relative path, return it
@@ -71,8 +75,9 @@ export default function MeetingScheduler() {
         setLoading(true);
 
         try {
-            // Direct call to Tailscale URL (no proxy needed for .ts.net)
-            const response = await fetch(currentWebhookUrl, {
+            // Use proxy to avoid CORS
+            const proxyUrl = getProxyUrl(currentWebhookUrl);
+            const response = await fetch(proxyUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -125,8 +130,9 @@ export default function MeetingScheduler() {
         setError(null);
 
         try {
-            // Direct call to resumeLink (Tailscale URL)
-            const response = await fetch(resumeLink, {
+            // Use proxy to avoid CORS
+            const proxyUrl = getProxyUrl(resumeLink);
+            const response = await fetch(proxyUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
