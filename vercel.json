@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/local-n8n/:match*",
-            "destination": "https://print-economic-correction-apr.trycloudflare.com/:match*"
+            "destination": "https://shardul2004.tail258c66.ts.net/:match*"
         },
         {
             "source": "/(.*)",
