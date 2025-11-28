@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
@@ -167,15 +169,15 @@ export default function YouTubeSummarizer() {
             )}
 
             {summary && (
-                <div className="glass-panel rounded-xl p-6 border-red-500/30 animate-slide-up">
+                <div className="p-6 rounded-xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="w-5 h-5 text-red-400" />
-                        <h3 className="text-xl font-bold text-white">Video Summary</h3>
+                        <FileText className="w-5 h-5 text-red-400" />
+                        <h3 className="text-lg font-semibold text-white">Video Summary</h3>
                     </div>
-                    <div className="prose prose-invert max-w-none">
-                        <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="prose prose-invert prose-slate max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {summary}
-                        </p>
+                        </ReactMarkdown>
                     </div>
                 </div>
             )}
