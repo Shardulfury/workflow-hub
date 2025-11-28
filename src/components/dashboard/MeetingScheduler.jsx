@@ -39,44 +39,7 @@ export default function MeetingScheduler() {
     const [resumeLink, setResumeLink] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
 
-    const extractTextFromResponse = (data) => {
-        if (typeof data === 'string') return data;
-        if (data === null || data === undefined) return '';
 
-        if (data.output !== undefined) {
-            if (typeof data.output === 'string') return data.output;
-            return extractTextFromResponse(data.output);
-        }
-
-        if (data.parts) {
-            if (Array.isArray(data.parts)) {
-                return data.parts.map(part => {
-                    if (typeof part === 'string') return part;
-                    if (part.text) return part.text;
-                    return JSON.stringify(part);
-                }).join('\n');
-            }
-            if (typeof data.parts === 'string') return data.parts;
-        }
-
-        if (data.confirmation) return extractTextFromResponse(data.confirmation);
-        if (data.message) return extractTextFromResponse(data.message);
-        if (data.text) return extractTextFromResponse(data.text);
-        if (data.content) return extractTextFromResponse(data.content);
-        if (data.status) return extractTextFromResponse(data.status);
-        if (data.result) return extractTextFromResponse(data.result);
-        if (data.data) return extractTextFromResponse(data.data);
-
-        if (Array.isArray(data)) {
-            return data.map(item => extractTextFromResponse(item)).join('\n\n');
-        }
-
-        if (typeof data === 'object') {
-            return JSON.stringify(data, null, 2);
-        }
-
-        return String(data);
-    };
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -88,15 +51,6 @@ export default function MeetingScheduler() {
         // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
         if (url.includes('.ts.net')) {
             return url;
-        }
-
-        // If it's localhost, use the proxy to avoid mixed content/CORS
-        if (url.includes('localhost')) {
-            // If it contains 'webhook', replace everything before it with /local-n8n
-            const webhookIndex = url.indexOf('/webhook');
-            if (webhookIndex !== -1) {
-                return '/local-n8n' + url.substring(webhookIndex);
-            }
         }
 
         // If it's already a relative path, return it
@@ -117,8 +71,8 @@ export default function MeetingScheduler() {
         setLoading(true);
 
         try {
-            const proxyUrl = getProxyUrl(currentWebhookUrl);
-            const response = await fetch(proxyUrl, {
+            // Direct call to Tailscale URL (no proxy needed for .ts.net)
+            const response = await fetch(currentWebhookUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -132,26 +86,24 @@ export default function MeetingScheduler() {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error("Failed to schedule meeting. Please try again.");
-            }
-
             const data = await response.json();
 
-            // Extract message and resumeLink from response
-            if (!data.message || !data.resumeLink) {
-                alert("Error: Invalid response from backend.");
-                console.error("Response data:", data);
-                setError("Invalid response received. Please try again.");
-                setLoading(false);
-                return;
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "Failed to schedule meeting.");
             }
 
-            setResumeLink(data.resumeLink);
-            setGeneratedMessage(data.message);
-            console.log("Resume link received:", data.resumeLink);
-            setShowDialog(true);
+            // Immediate response flow: Backend returns message and resumeLink
+            if (data.message && data.resumeLink) {
+                setResumeLink(data.resumeLink);
+                setGeneratedMessage(data.message);
+                setShowDialog(true);
+            } else {
+                // Fallback if backend behaves unexpectedly
+                throw new Error("Invalid response from server. Missing confirmation details.");
+            }
+
         } catch (err) {
+            console.error("Submission error:", err);
             setError(err.message || "An error occurred. Please try again.");
         } finally {
             setLoading(false);
@@ -169,16 +121,12 @@ export default function MeetingScheduler() {
             return;
         }
 
-        console.log("Sending request to:", resumeLink);
-
-        const proxyResumeLink = getProxyUrl(resumeLink);
-        console.log("Using proxy URL:", proxyResumeLink);
-
         setLoading(true);
         setError(null);
 
         try {
-            const response = await fetch(proxyResumeLink, {
+            // Direct call to resumeLink (Tailscale URL)
+            const response = await fetch(resumeLink, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -188,21 +136,20 @@ export default function MeetingScheduler() {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error(`Server returned status ${response.status}`);
-            }
-
             const data = await response.json();
 
-            // SCENARIO A: Backend has follow-up (resumeLink exists) - Keep dialog open for multi-turn conversation
+            if (!response.ok || data.error) {
+                throw new Error(data.error || `Server returned status ${response.status}`);
+            }
+
+            // Condition A: Backend asks for more info (resumeLink exists)
             if (data.resumeLink) {
                 setGeneratedMessage(data.message || "");
                 setResumeLink(data.resumeLink);
                 setUserInstructions("");
-                console.log("New resume link received:", data.resumeLink);
-                // Dialog stays open, user can continue the conversation
+                // Dialog stays open
             }
-            // SCENARIO B: Meeting is finalized (no resumeLink) - Close dialog and show success
+            // Condition B: Success (no resumeLink or specific success flag)
             else {
                 setShowDialog(false);
                 setShowSuccess(true);
@@ -220,7 +167,6 @@ export default function MeetingScheduler() {
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            alert(`Network Error: ${err.message}`);
             setError(err.message || "An error occurred. Please try again.");
         } finally {
             setLoading(false);
