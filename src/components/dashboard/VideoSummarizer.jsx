@@ -106,7 +106,7 @@ export default function VideoSummarizer() {
 
         try {
             const formData = new FormData();
-            formData.append('data', file);
+            formData.append('data0', file);
 
             // Simulate upload progress
             const progressInterval = setInterval(() => {
