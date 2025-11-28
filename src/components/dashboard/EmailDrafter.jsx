@@ -41,6 +41,33 @@ export default function EmailDrafter() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const extractTextFromResponse = (data) => {
+        if (typeof data === 'string') return data;
+        if (data === null || data === undefined) return '';
+
+        if (data.output !== undefined) {
+            if (typeof data.output === 'string') return data.output;
+            return extractTextFromResponse(data.output);
+        }
+
+        if (data.email) return extractTextFromResponse(data.email);
+        if (data.message) return extractTextFromResponse(data.message);
+        if (data.text) return extractTextFromResponse(data.text);
+        if (data.content) return extractTextFromResponse(data.content);
+        if (data.result) return extractTextFromResponse(data.result);
+        if (data.data) return extractTextFromResponse(data.data);
+
+        if (Array.isArray(data)) {
+            return data.map(item => extractTextFromResponse(item)).join('\n\n');
+        }
+
+        if (typeof data === 'object') {
+            return JSON.stringify(data, null, 2);
+        }
+
+        return String(data);
+    };
+
     const getProxyUrl = (url) => {
         if (!url) return url;
 
@@ -132,7 +159,17 @@ export default function EmailDrafter() {
             if (!response.ok) throw new Error("Failed to refine email");
 
             const data = await response.json();
-            setGeneratedEmail(data.email);
+            console.log("Refine Response:", data);
+
+            const refinedContent = extractTextFromResponse(data);
+            if (refinedContent) {
+                setGeneratedEmail(refinedContent);
+            }
+
+            if (data.resumeLink) {
+                setResumeLink(data.resumeLink);
+            }
+
             setRefinementInstructions("");
 
         } catch (err) {
