@@ -88,17 +88,22 @@ export default function EmailDrafter() {
             }
 
             const data = await response.json();
+            console.log("EmailDrafter Backend Response:", data); // Debug log
 
             if (data.error) {
                 throw new Error(data.error);
             }
 
-            if (data.email) {
-                setGeneratedEmail(data.email);
+            // Check for email content in various possible fields
+            const emailContent = data.email || data.message || data.output || data.text;
+
+            if (emailContent) {
+                setGeneratedEmail(emailContent);
                 setResumeLink(data.resumeLink || "");
                 setShowDialog(true);
             } else {
-                throw new Error("Invalid response format from server");
+                console.error("Invalid Data Keys:", Object.keys(data));
+                throw new Error(`Invalid response format. Received keys: ${Object.keys(data).join(", ")}`);
             }
 
         } catch (err) {
