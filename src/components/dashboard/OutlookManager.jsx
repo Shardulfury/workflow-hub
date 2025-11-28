@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/outlookManager",
-        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/outlookManager"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/outlook-manager",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/outlook-manager"
     }
 };
 
@@ -20,20 +20,14 @@ export default function OutlookManager() {
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [result, setResult] = useState("");
+    const [result, setResult] = useState(null);
 
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
-        if (url.includes('trycloudflare.com')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Error parsing URL:", e);
-                return url;
-            }
+        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        if (url.includes('.ts.net')) {
+            return url;
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS

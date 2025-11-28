@@ -2,15 +2,16 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Upload, FileVideo, CheckCircle2, Play } from "lucide-react";
+import { AlertCircle, Loader2, Upload, FileVideo, CheckCircle2, Play, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { base44 } from "@/api/base44Client";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/video-summary",
-        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/video-summary"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/video-summary",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/video-summary"
     }
 };
 
@@ -66,15 +67,9 @@ export default function VideoSummarizer() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
-        if (url.includes('trycloudflare.com')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Error parsing URL:", e);
-                return url;
-            }
+        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        if (url.includes('.ts.net')) {
+            return url;
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS
@@ -229,15 +224,15 @@ export default function VideoSummarizer() {
             )}
 
             {summary && (
-                <div className="glass-panel rounded-xl p-6 border-cyan-500/30 animate-slide-up">
-                    <div className="flex items-center gap-2 mb-4">
-                        <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-                        <h3 className="text-xl font-bold text-white">Video Summary</h3>
+                <div className="p-5 rounded-lg bg-amber-500/10 border border-amber-500/30 animate-fade-in">
+                    <div className="flex items-center gap-2 mb-3">
+                        <FileText className="w-5 h-5 text-amber-400" />
+                        <h4 className="font-semibold text-amber-200">Video Summary</h4>
                     </div>
-                    <div className="prose prose-invert max-w-none">
-                        <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {summary}
-                        </p>
+                        </ReactMarkdown>
                     </div>
                 </div>
             )}

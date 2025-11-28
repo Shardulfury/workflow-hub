@@ -8,8 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/youtubeSummarizer",
-        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/youtubeSummarizer"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/youtube-summary",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/youtube-summary"
     }
 };
 
@@ -28,17 +28,6 @@ export default function YouTubeSummarizer() {
         if (data.output !== undefined) {
             if (typeof data.output === 'string') return data.output;
             return extractTextFromResponse(data.output);
-        }
-
-        if (data.parts) {
-            if (Array.isArray(data.parts)) {
-                return data.parts.map(part => {
-                    if (typeof part === 'string') return part;
-                    if (part.text) return part.text;
-                    return JSON.stringify(part);
-                }).join('\n');
-            }
-            if (typeof data.parts === 'string') return data.parts;
         }
 
         if (data.summary) return extractTextFromResponse(data.summary);
@@ -62,15 +51,9 @@ export default function YouTubeSummarizer() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
-        if (url.includes('trycloudflare.com')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Error parsing URL:", e);
-                return url;
-            }
+        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        if (url.includes('.ts.net')) {
+            return url;
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS

@@ -16,8 +16,8 @@ import {
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://print-economic-correction-apr.trycloudflare.com/webhook/meetingScheduler",
-        test: "https://print-economic-correction-apr.trycloudflare.com/webhook-test/meetingScheduler"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/meetingScheduler",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/meetingScheduler"
     }
 };
 
@@ -85,15 +85,9 @@ export default function MeetingScheduler() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // If it's the public Cloudflare URL, route it through the proxy to avoid CORS
-        if (url.includes('trycloudflare.com')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Error parsing URL:", e);
-                return url;
-            }
+        // If it's the public Tailscale URL, use it directly (HTTPS is safe and trusted)
+        if (url.includes('.ts.net')) {
+            return url;
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS
