@@ -10,8 +10,8 @@ import remarkGfm from 'remark-gfm';
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://shardul2004.tail258c66.ts.net/webhook/video-summary",
-        test: "https://shardul2004.tail258c66.ts.net/webhook-test/video-summary"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/videoSummarizer",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/videoSummarizer"
     }
 };
 

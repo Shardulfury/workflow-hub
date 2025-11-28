@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://shardul2004.tail258c66.ts.net/webhook/outlook-manager",
-        test: "https://shardul2004.tail258c66.ts.net/webhook-test/outlook-manager"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/outlookManager",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/outlookManager"
     }
 };
 

@@ -8,8 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CONFIG = {
     isProduction: true, // Toggle this to switch environments
     urls: {
-        production: "https://shardul2004.tail258c66.ts.net/webhook/youtube-summary",
-        test: "https://shardul2004.tail258c66.ts.net/webhook-test/youtube-summary"
+        production: "https://shardul2004.tail258c66.ts.net/webhook/youtubeSummarizer",
+        test: "https://shardul2004.tail258c66.ts.net/webhook-test/youtubeSummarizer"
     }
 };
 
