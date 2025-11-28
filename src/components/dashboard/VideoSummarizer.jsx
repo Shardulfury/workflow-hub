@@ -67,15 +67,9 @@ export default function VideoSummarizer() {
     const getProxyUrl = (url) => {
         if (!url) return url;
 
-        // Use Vercel proxy for Tailscale URLs to avoid CORS issues
+        // Return Tailscale URLs directly without proxying
         if (url.includes('.ts.net')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Invalid URL:", url);
-                return url;
-            }
+            return url;
         }
 
         // If it's localhost, use the proxy to avoid mixed content/CORS
@@ -106,7 +100,7 @@ export default function VideoSummarizer() {
 
         try {
             const formData = new FormData();
-            formData.append('data0', file);
+            formData.append('data', file);
 
             // Simulate upload progress
             const progressInterval = setInterval(() => {
