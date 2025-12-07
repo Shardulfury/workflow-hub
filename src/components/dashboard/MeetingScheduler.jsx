@@ -44,22 +44,23 @@ export default function MeetingScheduler() {
     };
 
     const getProxyUrl = (url) => {
-        if (!url) return url;
+        if (!url) return "";
 
-        // Use Vercel proxy for Tailscale URLs to avoid CORS issues
+        // 1. If it is a Tailscale URL (Production), return it AS-IS.
+        // Do NOT rewrite it. Direct HTTPS access is safe and required for Vercel.
         if (url.includes('.ts.net')) {
-            try {
-                const urlObj = new URL(url);
-                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
-            } catch (e) {
-                console.error("Invalid URL:", url);
-                return url;
+            return url;
+        }
+
+        // 2. Only use the local proxy if we are actually running on Localhost
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            const webhookIndex = url.indexOf('/webhook');
+            if (webhookIndex !== -1) {
+                return '/local-n8n' + url.substring(webhookIndex);
             }
         }
 
-        // If it's already a relative path, return it
-        if (url.startsWith('/')) return url;
-
+        // 3. Fallback: Return the original URL
         return url;
     };
 
