@@ -1,0 +1,498 @@
+{
+  "name": "Email Drafting",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        144,
+        0
+      ],
+      "id": "dcf4a69e-50b5-4e45-8849-4acb292b369d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "This tool is to reference my contacts and to access and retrieve their email addresses.",
+        "documentId": {
+          "__rl": true,
+          "value": "1NofW9lJh1sJAsv77mhQJYjkYMwQMhlY3ayaOmInUcDo",
+          "mode": "list",
+          "cachedResultName": "Contact list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NofW9lJh1sJAsv77mhQJYjkYMwQMhlY3ayaOmInUcDo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NofW9lJh1sJAsv77mhQJYjkYMwQMhlY3ayaOmInUcDo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -528,
+        48
+      ],
+      "id": "94786a50-21f7-493a-9956-042c38903fe5",
+      "name": "Contact list",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tQvyVZrl2r1oxO4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Once an email draft has been approved, use this tool to send the email to the recipient.",
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Shardul"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        -480
+      ],
+      "id": "4b01b75e-1604-432a-b0b8-3a2769937106",
+      "name": "Send email",
+      "webhookId": "e1f63a3d-e001-481c-ac21-2c876ff1d272",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "fywnuZ0ZKvHTTF0r",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1663945f-a7ce-4047-be49-f67c9e16099d",
+              "name": "draft",
+              "value": "={{ JSON.parse($json.output.replace(/```json/g, \"\").replace(/```/g, \"\")).draft }}",
+              "type": "string"
+            },
+            {
+              "id": "467ab549-1062-4638-b76b-869ae8a10376",
+              "name": "email_address",
+              "value": "={{ JSON.parse($json.output.replace(/```json/g, \"\").replace(/```/g, \"\")).email_address }}",
+              "type": "string"
+            },
+            {
+              "id": "a5c4649f-4a3a-4679-9b00-d284e38e7c58",
+              "name": "subject",
+              "value": "={{ JSON.parse($json.output.replace(/```json/g, \"\").replace(/```/g, \"\")).subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -336,
+        -192
+      ],
+      "id": "cee02bc7-14e1-4308-8ef0-711cd25ff40f",
+      "name": "set intent"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  \"message\": $json.draft,\n  \"subject\": $json.subject,\n  \"recipient_email\": $json.email_address, // This line adds the email\n  \"resumeLink\": $execution.resumeUrl\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -224,
+        -400
+      ],
+      "id": "3dfe3377-9fc1-48c1-b3d8-2c466e4a13f4",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "limitWaitTime": true,
+        "resumeAmount": 3,
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -96,
+        -192
+      ],
+      "id": "51049891-25b5-4fa6-9b10-98b91b672aa5",
+      "name": "Wait",
+      "webhookId": "fcafb62e-519d-449b-bffc-449f79c8eea2"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.body.instructions || $json.body.action }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Approved",
+              "description": "MATCH ONLY IF: The user explicitly authorizes sending the email AS IS. CRITICAL RULE: If the user says \"Yes\" or \"It's good\" BUT adds a request for a change (e.g., \"Yes, but change the date\"), you must REJECT this category. VALID INPUTS: \"Send it\", \"Approved\", \"Looks good\", \"Ship it\", \"Confirm\", \"Perfect\". INVALID INPUTS: \"Send it but fix the typo\", \"Approved, just add a line\"."
+            },
+            {
+              "category": "Denied",
+              "description": "MATCH IF: The user requests ANY modification, correction, or change to the draft, regardless of how polite they are. PRIORITY RULE: This category OVERRIDES 'Approved'. If the input contains both a compliment AND a change request, select this category. VALID INPUTS: \"Make it formal\", \"Change the subject\", \"Add my phone number\", \"Too long\", \"Rewrite it\", \"Yes, but fix the name\"."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        -192
+      ],
+      "id": "e2da0d3e-ca41-4326-a647-a5cb36fae839",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### INPUT DATA\n- **Original Draft:** {{ $('set intent').item.json.draft }}\n- **User Feedback:** {{ $('Wait').item.json.body.instructions }}\n- **Current Subject:** {{ $('set intent').first().json.subject }}\n- **Recipient Email:** {{ $('set intent').first().json.email_address }}\n\n### TASK\nRewrite the \"Original Draft\" based on the \"User Feedback\".\n1. Apply changes.\n2. Return \"Recipient Email\" exactly as is.\n3. Update \"Subject\" only if requested.",
+        "options": {
+          "systemMessage": "=You are a Senior Executive Editor. Your goal is to refine email drafts based on specific user feedback while maintaining data integrity.\n\n### EDITING RULES\n1. **Direct Execution:** If the user says \"make it shorter,\" cut the text immediately. If they say \"add specific details,\" add them. Do not argue or explain.\n2. **Identity Preservation:** Ensure the email continues to end with the signature:\n   \"Best regards,\n   Shardul\"\n3. **Data Passthrough:** You MUST return the `email_address` exactly as it was given to you. Do not lose it, or the workflow will break.\n\n### OUTPUT FORMAT (STRICT ENFORCEMENT)\nYou are a headless API. Return **RAW JSON ONLY**.\n- **NO** Markdown code blocks (no ```json ... ```).\n- **NO** conversational text before or after the JSON.\n- **ESCAPE** all special characters. Newlines in the draft body must be `\\n`. Quotes must be `\\\"`.\n\n### REQUIRED JSON STRUCTURE\n{\n  \"email_address\": \"The exact email address provided in the input\",\n  \"subject\": \"The subject line (updated or original)\",\n  \"draft\": \"The fully rewritten email body text\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -48
+      ],
+      "id": "d26ec341-02cc-4259-bca1-3f7a05fb40dc",
+      "name": "Correction Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=TASK: Send the approved email immediately using the Gmail tool.\n\n### DATA PAYLOAD\n- **Recipient:** {{ $('set intent').item.json.email_address }}\n- **Subject:** {{ $('set intent').item.json.subject }}\n- **Body:** {{ $('set intent').item.json.draft }}\n\n### EXECUTION INSTRUCTIONS\n1. Verify the \"Recipient\" field is not empty.\n2. If valid, use the Gmail tool to send this email.\n3. If the tool executes successfully, output exactly: \"Email sent.\"",
+        "options": {
+          "systemMessage": "=You are a high-reliability Delivery Agent. Your ONLY purpose is to execute the \"Send Email\" action using the provided tool.\n\n### CRITICAL PROTOCOLS\n1. **No Creativity:** Do NOT rewrite, summarize, or edit the email body. Send it exactly as provided in the payload.\n2. **Tool Usage:** You MUST use the 'Gmail' tool. Do not hallucinate sending it.\n3. **Safety Check:**\n   - Check the `email_address`. If it is empty (`\"\"`) or obviously invalid (like \"unknown\"), DO NOT try to send. Instead, respond with: \"Error: No valid email address found.\"\n   - If the address is valid, proceed immediately.\n\n### OUTPUT\n- Upon success, return strictly: \"Email sent.\"\n- Upon failure, return a concise error message describing why."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -688
+      ],
+      "id": "bdc7bbdc-bd05-4dc7-be4a-9f95dcbb831a",
+      "name": "Email Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        496,
+        -464
+      ],
+      "id": "49a44a20-3a68-409b-b790-9f2204d4d486",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "emailDrafter",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        -192
+      ],
+      "id": "b1afbf88-b47c-4ca1-986f-cdb4472889f9",
+      "name": "Webhook1",
+      "webhookId": "d4fe246a-8cae-4c98-9a74-a13c541a1c5f"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please draft an email based on these details:\n\nRecipient Name: {{ $json.body.recipient_name }}\nSubject: {{ $json.body.subject }}\nContext/Intent: {{ $json.body.intent }}",
+        "options": {
+          "systemMessage": "=You are a Senior Executive Communications Assistant acting on behalf of Shardul. Your goal is to generate polished, professional, and action-oriented email drafts that are ready to send with zero edits.\n\n### 1. TOOL USAGE & DATA RETRIEVAL (CRITICAL)\n- **Step 1:** Analyze the user's input to identify the Recipient Name.\n- **Step 2:** IMMEDIATELY use the \"Contact list\" tool to search for this specific name.\n- **Step 3 (Decision):**\n  - IF the tool returns an email address: Use it exactly as returned.\n  - IF the tool returns nothing or multiple ambiguous results: Set the `email_address` field to an empty string `\"\"`.\n  - **CONSTRAINT:** NEVER invent, guess, or hallucinate an email address. If you don't know it, leave it blank.\n\n### 2. DRAFTING PROTOCOLS\n- **Tone:** Professional, concise, and warm. Avoid robotic phrasing like \"I hope this email finds you well\" unless appropriate. Get straight to the point.\n- **Sender Identity:** You are Shardul. All emails must reflect his voice.\n- **Signature:** Always end the email with:\n  \"Best regards,\n  Shardul\"\n- **Context Handling:**\n  - If the user input is vague (e.g., \"meeting\"), draft a standard polite request for availability.\n  - If the user input is detailed, incorporate all specific points naturally.\n\n### 3. OUTPUT FORMATTING (STRICT ENFORCEMENT)\nYou are a headless API endpoint. You must return **RAW JSON ONLY**.\n- **RULE #1:** Do NOT wrap the output in markdown code blocks (no ```json ... ```).\n- **RULE #2:** Do NOT include any conversational text (no \"Here is your draft\").\n- **RULE #3:** Properly escape all special characters. Newlines in the email body MUST be escaped as `\\n`. Double quotes inside the text must be escaped as `\\\"`.\n\n### REQUIRED JSON STRUCTURE\nReturn this exact JSON object structure:\n{\n  \"email_address\": \"The found email from the tool OR empty string\",\n  \"subject\": \"A clear, compelling subject line derived from the intent\",\n  \"draft\": \"The full email body text, formatted with \\n for line breaks\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        -192
+      ],
+      "id": "c8a61091-983a-413c-92b1-bf44848ee7eb",
+      "name": "Drafter"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Email sent successfully!\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        832,
+        -688
+      ],
+      "id": "2f903996-9f88-48f0-9629-e5abf15c14ea",
+      "name": "Respond to Webhook2"
+    }
+  ],
+  "pinData": {
+    "Webhook1": [
+      {
+        "json": {
+          "headers": {
+            "host": "shardul2004.tail258c66.ts.net",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "142",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-GB,en-IN;q=0.9,en-US;q=0.8,en;q=0.7",
+            "content-type": "application/json",
+            "cookie": "__vercel_toolbar=1",
+            "origin": "https://workflow-hub-vert.vercel.app",
+            "priority": "u=1, i",
+            "referer": "https://workflow-hub-vert.vercel.app/dashboard?service=youtube",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "tailscale-funnel-request": "?1",
+            "x-forwarded-for": "13.201.96.23",
+            "x-forwarded-host": "shardul2004.tail258c66.ts.net",
+            "x-forwarded-proto": "https",
+            "x-real-ip": "223.233.69.85",
+            "x-vercel-forwarded-for": "223.233.69.85",
+            "x-vercel-id": "bom1::ttsg7-1765119121777-b2906716ccb7",
+            "x-vercel-ja4-digest": "t13d1517h2_8daaf6152771_b6f405a00624",
+            "x-vercel-oidc-token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Im1yay00MzAyZWMxYjY3MGY0OGE5OGFkNjFkYWRlNGEyM2JlNyJ9.eyJpc3MiOiJodHRwczpcL1wvb2lkYy52ZXJjZWwuY29tXC9zaGFyZHVsLWdodXNhcnMtcHJvamVjdHMiLCJwbGFuIjoiaG9iYnkiLCJvd25lciI6InNoYXJkdWwtZ2h1c2Fycy1wcm9qZWN0cyIsIm93bmVyX2lkIjoidGVhbV82YWN1MHg1QTdpZzU5QVoxMGo1YXkxZjciLCJzdWIiOiJvd25lcjpzaGFyZHVsLWdodXNhcnMtcHJvamVjdHM6cHJvamVjdDp3b3JrZmxvdy1odWI6ZW52aXJvbm1lbnQ6cHJvZHVjdGlvbiIsImF1ZCI6Imh0dHBzOlwvXC92ZXJjZWwuY29tXC9zaGFyZHVsLWdodXNhcnMtcHJvamVjdHMiLCJleHAiOjE3NjUxMjI2NTAsInNjb3BlIjoib3duZXI6c2hhcmR1bC1naHVzYXJzLXByb2plY3RzOnByb2plY3Q6d29ya2Zsb3ctaHViOmVudmlyb25tZW50OnByb2R1Y3Rpb24iLCJlbnZpcm9ubWVudCI6InByb2R1Y3Rpb24iLCJuYmYiOjE3NjUxMTkwNTAsImlhdCI6MTc2NTExOTA1MCwidmVyY2VsX2lkIjoiYm9tMTo6cGNjcGwtMTc2NTExOTA1MDIwOS1kZWM1Nzk3MjMwNjgiLCJwcm9qZWN0Ijoid29ya2Zsb3ctaHViIiwicHJvamVjdF9pZCI6InByal96R1EwZ0pvRUYwbXVxRGxNQlRvajl1Uk1FZ2g2In0.MBMSUM0hW5T36MiLt9I_NVomfdQdvk7T_ynFwRIWARIaobrhSN3thoqyosmHTbMSB6MX9GOp00MbijmQ4vT6pZ3aZOZuHe1KPtrOZXBRIoH3_qzZikDTNedelQNAlFOsGgCOhkuY395JlkK-by-09_dz9hYAxgREPQlUqbmube9xbzDuO81BfQB13aAbmu0GCYE7vf61pm0fAUcd6F8bvYfHCsh6zUJnPSr72bwxdGsN-d6ZZRH_zoXhqtotdUzu10AJpOlX9M5X5qAHr4hXYgRnlI8kzucQ6USE0VA4IXJH-m4HjHfHq8toXEh1h5puqz9Z0lf8fvIVc7ApYTxpXw",
+            "x-vercel-proxied-for": "223.233.69.85",
+            "x-vercel-proxy-signature": "Bearer aa8848583c25e22e03fd0a1ac7e106450812629993fe699945c5c29ef36e6ec4",
+            "x-vercel-proxy-signature-ts": "1765119421"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "recipient_name": "sahil",
+            "subject": "Project presentation tomorrow",
+            "intent": "tell sahil we are having major project presentation tomorrow. "
+          },
+          "webhookUrl": "https://shardul2004.tail258c66.ts.net/webhook/emailDrafter",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Drafter",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Correction Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact list": {
+      "ai_tool": [
+        [
+          {
+            "node": "Drafter",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set intent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Correction Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction Agent": {
+      "main": [
+        [
+          {
+            "node": "set intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Drafter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drafter": {
+      "main": [
+        [
+          {
+            "node": "set intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bf2b42c4-7ce0-4f97-b8c3-22e9df4de40c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52eb1fb1e253086810d18d99b273a805e985287a97ca9820ce0a773de8d31a60"
+  },
+  "id": "VmRWGbignwOZnrCv",
+  "tags": []
+}

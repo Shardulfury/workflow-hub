@@ -1,0 +1,547 @@
+{
+  "name": "Outlook",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "output": "raw",
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        464
+      ],
+      "id": "c41a982f-bbd5-486c-b8ea-4b7ec0b347c7",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "In6iViyJjOLDuM6A",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.content.parts[0].text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "High Priority",
+              "description": "Emails that require immediate attention, often involving urgent issues, escalations, system failures, or critical business matters.\n\nCommon Words/Phrases:\nUrgent, ASAP, Immediate action required, Critical issue, Escalation, Emergency, System outage, High priority, Downtime, Affected customers, Please respond quickly, Need resolution, Time-sensitive."
+            },
+            {
+              "category": "Billing",
+              "description": "Emails related to payments, invoices, subscriptions, financial transactions, or account balances. These emails often contain due dates, payment instructions, or financial statements.\n\nCommon Words/Phrases:\nInvoice, Billing statement, Payment due, Past due, Outstanding balance, Subscription renewal, Payment confirmation, Charge notice, Overdue notice, Auto-renewal, Finance department, ACH transfer, Bank details."
+            },
+            {
+              "category": "Promotion",
+              "description": "Emails related to marketing campaigns, sales offers, discounts, partnership opportunities, or advertisements. These emails are often sent in bulk and contain promotional language.\n\nCommon Words/Phrases:\nSpecial offer, Limited-time deal, Exclusive discount, Save big, Flash sale, Promo code, Get 20% off, Earn rewards, Best deals, New product launch, Marketing campaign, Subscription offer, Early access, Upgrade now, Act fast."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        464
+      ],
+      "id": "59157d05-de92-4f9b-b53a-7a5f401719bd",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        0,
+        688
+      ],
+      "id": "225bf5c3-daa2-441c-84a7-c6d6e5c44351",
+      "name": "Flash 2.0",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $('Microsoft Outlook Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimlAAA=",
+          "mode": "list",
+          "cachedResultName": "High Priority",
+          "cachedResultUrl": "https://outlook.office365.com/mail/AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimlAAA%3D"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        464,
+        240
+      ],
+      "id": "e6b7439e-f5ff-4b71-b271-f0baf4adb843",
+      "name": "High Priority Folder",
+      "webhookId": "d7869f88-45cf-4d4e-98f9-4b3ac0100851",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "In6iViyJjOLDuM6A",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $('Microsoft Outlook Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimmAAA=",
+          "mode": "list",
+          "cachedResultName": "Billing",
+          "cachedResultUrl": "https://outlook.office365.com/mail/AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimmAAA%3D"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        464,
+        464
+      ],
+      "id": "98f30c9e-cdcc-4cec-aa9c-3aa1c0ac0920",
+      "name": "Billing Folder",
+      "webhookId": "d7869f88-45cf-4d4e-98f9-4b3ac0100851",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "In6iViyJjOLDuM6A",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the email: {{ $('Clean Email').item.json.message.content }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are a billing assistant. Your job is to respond to the incoming emails in a professional manner.\n\n## Tools \nCreate Draft - Use this tool to send an email in response to the one you receive"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        672,
+        464
+      ],
+      "id": "308bbf79-3d6b-4537-b011-e8cd9876cf23",
+      "name": "Billing Agent"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "bodyContent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `sign off as Bob from ABS Corp`, 'string') }}",
+        "additionalFields": {
+          "toRecipients": "={{ $('Microsoft Outlook Trigger').item.json.sender.emailAddress.address }}"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTool",
+      "typeVersion": 2,
+      "position": [
+        864,
+        672
+      ],
+      "id": "f2b413e0-08ab-4319-9587-2106c47d451f",
+      "name": "Create Draft",
+      "webhookId": "445ca80a-e3b5-4c65-8555-7c5d6d3cfe54",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $('Microsoft Outlook Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimnAAA=",
+          "mode": "list",
+          "cachedResultName": "Promotion",
+          "cachedResultUrl": "https://outlook.office365.com/mail/AAMkADNkMjlmNmE5LTM4YTItNDA1OS04ZTlhLWMwN2JmNzk5ZWYwMgAuAAAAAAA4jej4KLPETrBD7i8Hi7vaAQA4Hk6Q4YO1SaRN2dzeTOvIAAL0XimnAAA%3D"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        464,
+        688
+      ],
+      "id": "5320f568-fc35-48f9-ab1a-e4ab5a1b191a",
+      "name": "Promotion Folder",
+      "webhookId": "d7869f88-45cf-4d4e-98f9-4b3ac0100851",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "In6iViyJjOLDuM6A",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $('Microsoft Outlook Trigger').item.json.from.emailAddress.address }}",
+        "subject": "Not Interested",
+        "bodyContent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Sign off all emails as Frank`, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTool",
+      "typeVersion": 2,
+      "position": [
+        848,
+        1072
+      ],
+      "id": "2dd4fc6f-0b27-4844-a676-380af7e23292",
+      "name": "Send Email",
+      "webhookId": "47f1e1c3-dcdf-4656-b914-0eeb16cc6bb9",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "In6iViyJjOLDuM6A",
+          "name": "Microsoft Outlook account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the incoming email: {{ $('Clean Email').item.json.message.content }}",
+        "options": {
+          "systemMessage": "You will receive promotional emails. Your job is to politely decline all offers. Use the 'Send Email' Tool to do so."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        688,
+        848
+      ],
+      "id": "41a7f264-d587-481b-977e-2368fa26f129",
+      "name": "Promotion Agent"
+    },
+    {
+      "parameters": {
+        "chatId": "1248266161",
+        "text": "=New High Priority Email\n\nFrom: {{ $('Microsoft Outlook Trigger').item.json.sender.emailAddress.name }}\n\nSubject: {{ $('Microsoft Outlook Trigger').item.json.subject }}\n\nDate: {{ $now.format('yyyy-MM-dd') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        240
+      ],
+      "id": "708d40e7-405c-4cb1-8f38-dd7279ba599e",
+      "name": "High Priority Notification",
+      "webhookId": "816efd19-6ee7-4e4f-ac86-e0778853b21f",
+      "credentials": {
+        "telegramApi": {
+          "id": "X6orVy9jh8ue9M04",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1248266161",
+        "text": "=New billing inquiry received at {{ $now.format('hh:mm a') }} from {{ $('Microsoft Outlook Trigger').item.json.sender.emailAddress.name }}.\n\nA draft has been created and is sitting in your Outlook.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        464
+      ],
+      "id": "7f43ae4f-6b43-4a94-9bbc-9d55f9b3e5b5",
+      "name": "Billing Notification",
+      "webhookId": "816efd19-6ee7-4e4f-ac86-e0778853b21f",
+      "credentials": {
+        "telegramApi": {
+          "id": "X6orVy9jh8ue9M04",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        688
+      ],
+      "id": "d9d4cf63-913a-47f4-973d-1ea6b7a5c3ea",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Here is an incoming email:  {{ $json.body.content }}"
+            },
+            {
+              "content": "Take the incoming email and clean it up so it is more readable. Get rid of the HTML tagging, but don't get rid of any email content. Don't include subject.",
+              "role": "model"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": ""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        464
+      ],
+      "id": "5249f407-230d-4e3d-9d67-d7f21dc970c9",
+      "name": "Clean email",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Outlook\n",
+        "height": 1040,
+        "width": 2048,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -688,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "3ffbddd6-1f6e-4ef1-827e-ec7a204de024",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "outLook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        256
+      ],
+      "id": "a1940e87-ccf9-4b5f-a1f0-b591d70afb90",
+      "name": "Webhook",
+      "webhookId": "ac41ba73-102c-4220-9be4-fb5051ee6743"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clean email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flash 2.0": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "High Priority Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Billing Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Promotion Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Priority Folder": {
+      "main": [
+        [
+          {
+            "node": "High Priority Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing Folder": {
+      "main": [
+        [
+          {
+            "node": "Billing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "Billing Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing Agent": {
+      "main": [
+        [
+          {
+            "node": "Billing Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Promotion Folder": {
+      "main": [
+        [
+          {
+            "node": "Promotion Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "ai_tool": [
+        [
+          {
+            "node": "Promotion Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Billing Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Promotion Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean email": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "91e0ccec-687c-41a6-9732-fb2dfe8c1298",
+  "meta": {
+    "instanceId": "52eb1fb1e253086810d18d99b273a805e985287a97ca9820ce0a773de8d31a60"
+  },
+  "id": "RLcdpvJz8U6qZ9sm",
+  "tags": []
+}

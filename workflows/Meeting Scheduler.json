@@ -1,0 +1,747 @@
+{
+  "name": "Meeting Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meetingScheduler",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://workflow-hub-hzy8.vercel.app"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        1600
+      ],
+      "id": "cb206cf0-d677-4ab1-ba46-3e78446bf9af",
+      "name": "Webhook",
+      "webhookId": "7530f573-359f-45d1-bb9d-4e25ed8e20f7"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Details:\nTitle: {{ $json.body.meeting_title }}\nDate: {{ $json.body.meeting_date }}\nTime: {{ $json.body.meeting_time }}\nParticipants: {{ $json.body.participants }}\nDescription: {{ $json.body.description }}",
+        "options": {
+          "systemMessage": "=You are a Scheduling Data Extractor.\n1. Extract the meeting title, date, and time.\n2. Calculate the End Time based on duration (default 1 hour unless user says \"2 hours\", etc).\n3. Look up participants using the \"Contact List\" tool.\n4. Output strictly valid JSON.\n\n### OUTPUT FORMAT:\n{\n  \"summary\": \"Meeting Title\",\n  \"start\": \"2025-11-28T16:30:00\",\n  \"end\": \"2025-11-28T18:30:00\",\n  \"attendees\": [\"email@example.com\"],\n  \"description\": \"Any extra notes\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        336,
+        1600
+      ],
+      "id": "d6ae937b-3ace-49f8-87ed-92e79458d238",
+      "name": "Intent Agent1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', `12:01 AM of the day the user requested`, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `11:59 PM of the day the user requested`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        1872
+      ],
+      "id": "fe5601b7-f2a8-4ad3-b9b0-423b88ad3185",
+      "name": "Get_Events1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appm7gw74EEvlVYfP",
+          "mode": "list",
+          "cachedResultName": "Contacts",
+          "cachedResultUrl": "https://airtable.com/appm7gw74EEvlVYfP"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbll9QRKJ3yJwyrkt",
+          "mode": "list",
+          "cachedResultName": "Contacts",
+          "cachedResultUrl": "https://airtable.com/appm7gw74EEvlVYfP/tbll9QRKJ3yJwyrkt"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        1872
+      ],
+      "id": "7d615eae-faf9-48ae-83f4-4c134108d5f5",
+      "name": "Contacts1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "q5F8bulqQbjhusuo",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ab6c175-d35c-48a3-a9db-5162f962d5f9",
+              "name": "conflict_status",
+              "value": "={{ \n  (() => {\n    try {\n      const raw = $json.output.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n      const data = JSON.parse(raw);\n      // Default to false if key is missing\n      return data.conflict_found || false; \n    } catch(e) { return false; }\n  })() \n}}",
+              "type": "string"
+            },
+            {
+              "id": "4320ddf4-20f1-484c-aded-be4695e3eb7e",
+              "name": "conflict_id",
+              "value": "={{ \n  (() => {\n    try {\n      const raw = $json.output.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n      const data = JSON.parse(raw);\n      // Use optional chaining (?.) to prevent crashes\n      return data.conflicting_event?.id || null; \n    } catch(e) { return null; }\n  })() \n}}",
+              "type": "string"
+            },
+            {
+              "id": "45454336-c0db-4500-957e-dd67dee445f0",
+              "name": "conflict_title",
+              "value": "={{ \n  (() => {\n    try {\n      const raw = $json.output.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n      const data = JSON.parse(raw);\n      return data.conflicting_event?.summary || null; \n    } catch(e) { return null; }\n  })() \n}}",
+              "type": "string"
+            },
+            {
+              "id": "fd113bf3-83ed-47cb-95a1-ec86e47537d6",
+              "name": "new_meeting_data",
+              "value": "={{ \n  (() => {\n    try {\n      const raw = $json.output.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n      const data = JSON.parse(raw);\n      // If original_intent exists (Conflict node), use it. \n      // Otherwise, the data itself is the meeting data (Correction node).\n      return data.original_intent || data; \n    } catch(e) { return null; }\n  })() \n}}",
+              "type": "string"
+            },
+            {
+              "id": "827ae579-ccf3-42e3-b552-b57638c78f6f",
+              "name": "day_summary",
+              "value": "={{\n  (() => {\n    try {\n      // 1. Clean up potential Markdown formatting\n      const raw = $json.output.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n      \n      // 2. Parse the JSON\n      const data = JSON.parse(raw);\n      \n      // 3. Return the summary safely\n      return data.day_summary || null;\n    } catch (e) {\n      // If parsing fails or data is missing, return null\n      return null;\n    }\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        1600
+      ],
+      "id": "0ee79005-af35-4931-9bf1-dbe8341b7d7b",
+      "name": "Set Intent1"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.body.feedback }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Approved",
+              "description": "The user wants to proceed with the action. This covers two types of responses: 1. Confirmations: \"Yes\", \"Correct\", \"Looks good\", \"Agreed\". 2. Commands/Requests to execute: \"Please schedule\", \"Schedule it\", \"Send the invite\", \"Go ahead\", \"Make the meeting\". If the user indicates they are ready for the meeting to be created, mark this as true."
+            },
+            {
+              "category": "Denied",
+              "description": "The user rejects the current details, requests a change, or wants to cancel. This includes negative responses like \"no\", \"cancel\", \"stop\", as well as modification requests like \"change the time\", \"wrong date\", \"add a participant\", \"wait\", or \"hold on\". Any intent to alter or stop the event counts as Denied."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        1456
+      ],
+      "id": "da3b95cf-155c-4566-90c7-264ff3a53215",
+      "name": "Check Feedback1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Original Data: {{ $('Set Intent1').item.json.intent }}\nUser Feedback: {{ $json.body.feedback }}",
+        "options": {
+          "systemMessage": "=You are a Scheduling Strategist. You receive User Feedback and Conflict Data. You must output a list of actions to perform.\n\n### INPUT CONTEXT:\n- User wants to: {{ $json.body.instructions }}\n- Conflicting Event ID: {{ $('Set Intent1').item.json.conflict_id }}\n- New Meeting Data: {{ $('Set Intent1').item.json.new_meeting_data }}\n\n### INSTRUCTIONS:\n1. If the user wants to reschedule the OLD meeting, create an \"update\" action using the Conflict Event ID.\n2. If the user wants to book the NEW meeting, create a \"create\" action.\n3. Output a JSON object with an \"actions\" array.\n\n### REQUIRED OUTPUT FORMAT:\n{\n  \"actions\": [\n    {\n      \"tool\": \"update_event\",\n      \"id\": \"event_id_here\",\n      \"start\": \"new_iso_time\",\n      \"end\": \"new_iso_time\"\n    },\n    {\n      \"tool\": \"create_event\",\n      \"summary\": \"Title\",\n      \"start\": \"iso_time\",\n      \"end\": \"iso_time\",\n      \"attendees\": [\"...\"]\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1712,
+        1616
+      ],
+      "id": "79a699dd-540a-4130-be69-d24bc401a3ca",
+      "name": "Correction Agent1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{\n  (() => {\n    // 1. Check if the Correction Agent ran (Complex Path)\n    // We use .first() to see if data exists there\n    try {\n        const correctionData = $('Correction Agent1').first().json;\n        if (correctionData && correctionData.actions) {\n            return JSON.stringify(correctionData);\n        }\n    } catch (e) {}\n\n    // 2. If not, we are on the Simple Path (User said \"Yes\")\n    // We get the original planned meeting\n    const intentData = $('Set Intent1').item.json;\n    \n    // Handle cases where new_meeting_data might be a string or object\n    let meeting = intentData.new_meeting_data;\n    if (typeof meeting === 'string') {\n        try { meeting = JSON.parse(meeting); } catch(e) {}\n    }\n\n    // 3. Wrap it in the \"actions\" format the Agent expects\n    return JSON.stringify({\n        \"actions\": [\n            {\n                \"tool\": \"create_event\",\n                \"summary\": meeting.summary || meeting.meeting_title,\n                \"start\": meeting.start || meeting.start_time,\n                \"end\": meeting.end || meeting.end_time,\n                \"attendees\": meeting.attendees || meeting.participants\n            }\n        ]\n    });\n  })()\n}}",
+        "options": {
+          "systemMessage": "=You are a Batch Execution Bot.\n\n1. Receive the JSON object with the \"actions\" array.\n2. Iterate through the array.\n3. If tool is \"update_event\", use the \"Update Event\" tool.\n4. If tool is \"create_event\", use the \"Create Event\" tool.\n5. Perform ALL actions requested.\n\nOutput: \"All scheduling actions completed.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1712,
+        1184
+      ],
+      "id": "34a3c8eb-f38d-41c8-9e18-e901cbfd5e8b",
+      "name": "Calendar Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        1888
+      ],
+      "id": "8f8ce8de-6b0e-4937-b369-4634691ddeb0",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        1344
+      ],
+      "id": "46c43b75-f2bb-4a90-9b77-1c263b92d229",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  (() => {\n    // 1. Get the data\n    const data = $('Set Intent1').item.json;\n    \n    // 2. Safely parse the meeting data (handle if it's a string or object)\n    let newMeet = data.new_meeting_data;\n    if (typeof newMeet === 'string') {\n        try { newMeet = JSON.parse(newMeet); } catch(e) {}\n    }\n    newMeet = newMeet || {};\n    \n    // 3. TITLE LOGIC (Updated to check 'summary')\n    const title = newMeet.summary || newMeet.meeting_title || newMeet.title || \"New Meeting\";\n    \n    // 4. TIME LOGIC (Updated to check 'start')\n    let timeString = \"requested time\";\n    // Check 'start' (from your screenshot) OR 'start_time'\n    const rawTime = newMeet.start || newMeet.start_time || newMeet.meeting_time;\n\n    if (rawTime) {\n        // If it's an ISO date (2025-11-29T16:00:00), format it nicely\n        if (rawTime.includes('T') || rawTime.includes('-')) {\n             timeString = new Date(rawTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });\n        } else {\n             timeString = rawTime;\n        }\n    }\n\n    // 5. Construct the Message\n    let msg = \"\";\n    \n    // Clean Day Summary\n    if (data.day_summary) {\n       msg += `${data.day_summary}\\n\\n`; \n    }\n\n    if (data.conflict_status === true) {\n       const clashTitle = data.conflict_title || \"an existing meeting\";\n       msg += `⚠️ **Conflict:** The new meeting \"${title}\" clashes with \"${clashTitle}\".\\n\\nDo you want to:\\n1. Reschedule the old \"${clashTitle}\"?\\n2. Change the time for \"${title}\"?`;\n    } else {\n       msg += `You want to schedule \"${title}\" at ${timeString}.\\n\\nIs it okay to proceed?`;\n    }\n\n    return JSON.stringify({\n      \"message\": msg,\n      \"resumeLink\": $execution.resumeUrl\n    });\n  })()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1088,
+        1440
+      ],
+      "id": "e5028f47-ad51-4135-a398-ba28089cb275",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Meeting successfully created!\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2064,
+        1184
+      ],
+      "id": "723065a0-975b-47a5-a4f5-f887115aad90",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "limitWaitTime": true,
+        "resumeAmount": 3,
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        1600
+      ],
+      "id": "53859054-9ae0-4f2c-9880-2a8cada94b0f",
+      "name": "Wait",
+      "webhookId": "62697daa-1a50-4cc3-b632-6278ba206755"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1648,
+        1040
+      ],
+      "id": "dda76ddf-351c-4737-b82e-95f6db73a254",
+      "name": "Create Event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Attendees', ``, 'string') }}"
+          ],
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1792,
+        1040
+      ],
+      "id": "5f00fdf3-bb27-4df4-b798-49d8b667894f",
+      "name": "Create Event with Attendee",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', `12:01 AM of the day the user requested`, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `11:59 PM of the day the user requested`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        1040
+      ],
+      "id": "e1ec6b39-9c81-4985-a247-be814adcf9eb",
+      "name": "Get Events",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1792,
+        1344
+      ],
+      "id": "99646367-112f-4a1c-b23a-b9d66c77d4db",
+      "name": "Update Event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "shanughusar2004@gmail.com",
+          "mode": "list",
+          "cachedResultName": "shanughusar2004@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        1344
+      ],
+      "id": "212519c7-6981-407d-8dca-8545f8d04c2c",
+      "name": "Delete Event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2pEb0BacnHi6til6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Check availability for: {{ $('Intent Agent1').item.json.output }}",
+        "options": {
+          "systemMessage": "=You are a Calendar Analyst.\n1. Identify the DATE of the new requested meeting.\n2. Use the \"Get Events\" tool to fetch ALL events for that entire day (from 00:00 to 23:59).\n3. Analyze the results:\n   - **Conflict Check:** Does the new meeting time overlap with any existing event?\n   - **Day Summary:** Create a short, natural sentence listing existing meetings (e.g., \"You have a Project Review at 12pm and Lunch at 1pm\").\n4. Output STRICT JSON:\n{\n  \"conflict_found\": true (if specific overlap) or false,\n  \"conflicting_event\": { \"id\": \"...\", \"summary\": \"...\" } (if specific overlap),\n  \"day_summary\": \"The text summary of existing meetings\",\n  \"original_intent\": { ...pass through all input data... }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        1600
+      ],
+      "id": "d45eda47-a5af-48c3-b340-a5e80c82a6bc",
+      "name": "Conflict Check Agent"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "shardul2004.tail258c66.ts.net",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "149",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-GB,en-IN;q=0.9,en-US;q=0.8,en;q=0.7",
+            "content-type": "application/json",
+            "origin": "https://workflow-hub-hzy8.vercel.app",
+            "priority": "u=1, i",
+            "referer": "https://workflow-hub-hzy8.vercel.app/dashboard?service=meeting",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "tailscale-funnel-request": "?1",
+            "x-forwarded-for": "15.207.87.245",
+            "x-forwarded-host": "shardul2004.tail258c66.ts.net",
+            "x-forwarded-proto": "https",
+            "x-real-ip": "223.233.73.44",
+            "x-vercel-forwarded-for": "223.233.73.44",
+            "x-vercel-id": "bom1::jn6tf-1764405380943-4115bd577cd8",
+            "x-vercel-ja4-digest": "t13d1517h2_8daaf6152771_b6f405a00624",
+            "x-vercel-oidc-token": "eyJraWQiOiJtcmstNDMwMmVjMWI2NzBmNDhhOThhZDYxZGFkZTRhMjNiZTciLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJodHRwczpcL1wvdmVyY2VsLmNvbVwvc2hhcmR1bC1naHVzYXJzLXByb2plY3RzIiwiZXhwIjoxNzY0NDA4ODY2LCJwbGFuIjoiaG9iYnkiLCJvd25lciI6InNoYXJkdWwtZ2h1c2Fycy1wcm9qZWN0cyIsImlhdCI6MTc2NDQwNTI2Niwib3duZXJfaWQiOiJ0ZWFtXzZhY3UweDVBN2lnNTlBWjEwajVheTFmNyIsInNjb3BlIjoib3duZXI6c2hhcmR1bC1naHVzYXJzLXByb2plY3RzOnByb2plY3Q6d29ya2Zsb3ctaHViLWh6eTg6ZW52aXJvbm1lbnQ6cHJvZHVjdGlvbiIsInByb2plY3RfaWQiOiJwcmpfTm0wUUhmT3NQcE9KdVR2cDd3dlh3cjJsaXBIeSIsIm5iZiI6MTc2NDQwNTI2NiwiZW52aXJvbm1lbnQiOiJwcm9kdWN0aW9uIiwidmVyY2VsX2lkIjoiYm9tMTo6NjRjZG0tMTc2NDQwNTI2NjIzNi0wODAzM2E2NjA5ZDIiLCJpc3MiOiJodHRwczpcL1wvb2lkYy52ZXJjZWwuY29tXC9zaGFyZHVsLWdodXNhcnMtcHJvamVjdHMiLCJwcm9qZWN0Ijoid29ya2Zsb3ctaHViLWh6eTgiLCJzdWIiOiJvd25lcjpzaGFyZHVsLWdodXNhcnMtcHJvamVjdHM6cHJvamVjdDp3b3JrZmxvdy1odWItaHp5ODplbnZpcm9ubWVudDpwcm9kdWN0aW9uIn0.TSk3YnDc33lNcEcWWFfn3CLaMXo16XsKxhQda_6aNp4eUAzlhf9nQGirqk4Rus1RVojUfD6GX3Mp42bNGs3sFCrnW8Q6-7vEgaVkI0AWnyrdekkVWKZvTt800hNo22fZqtmVF9KYW1YIYE1l_hGdxHZb9atn4CPKl9YT-3ANl57FkkuwP1OEKn8U9pl4_vxqJbmQskH-kIsV6QmmPARzxHbOWfZkjKEFMvU5T_wpddHBxKAChNJI6kpN8-1TWXPiCrHzPbDGagU70cg5YZEjwLZjGberGA2Td-Wk2lGEKKQM_Q-jvWqLFsJJpd6iR3cK1T60sfoG8dYhguNPTUczjA",
+            "x-vercel-proxied-for": "223.233.73.44",
+            "x-vercel-proxy-signature": "Bearer ce3435a05d84c8ad13512b97dedde0ab6aa44bff13f0baedf062096e3bc944cf",
+            "x-vercel-proxy-signature-ts": "1764405680"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "meeting_title": "Major project discussion with mentor",
+            "meeting_date": "2025-11-29",
+            "meeting_time": "15:00",
+            "participants": "Shardul",
+            "description": ""
+          },
+          "webhookUrl": "https://shardul2004.tail258c66.ts.net/webhook/meetingScheduler",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Intent Agent1": {
+      "main": [
+        [
+          {
+            "node": "Conflict Check Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Events1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Conflict Check Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contacts1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Intent Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Intent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Feedback1": {
+      "main": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Correction Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction Agent1": {
+      "main": [
+        [
+          {
+            "node": "Set Intent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Intent Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Check Feedback1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Correction Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Conflict Check Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Intent Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Check Feedback1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event with Attendee": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Events": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conflict Check Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Intent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "c6bed1b2-2383-4322-a797-b0ac7aca6e74",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52eb1fb1e253086810d18d99b273a805e985287a97ca9820ce0a773de8d31a60"
+  },
+  "id": "WNx2pIBda3SRyZsB",
+  "tags": []
+}

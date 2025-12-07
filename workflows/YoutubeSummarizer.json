@@ -1,0 +1,220 @@
+{
+  "name": "YoutubeSummarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "youtubeSummarizer",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -560,
+        48
+      ],
+      "id": "47760217-fee5-4780-9be2-71ac3115f9a9",
+      "name": "Webhook",
+      "webhookId": "3a0a9eb3-0326-4298-8d08-39f80b18632d"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ \"summary\": $('AI Agent').item.json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        384,
+        0
+      ],
+      "id": "3847d01d-571a-4494-90df-8fa09139fd14",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        32,
+        240
+      ],
+      "id": "507506ef-9a93-4d31-8dcf-7ff755a8ce61",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "psuk8SZghxLbr8g2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the transcript of a YouTube video:\n\n\"\"\"\n{{ $('Code1').item.json.transcript }}\n\"\"\"\n\nPlease provide a detailed summary including:\n1. The Main Topic\n2. Key Takeaways (Bullet points)\n3. A 1-sentence conclusion.",
+        "options": {
+          "systemMessage": "You are a Senior Video Analyst. Your goal is to summarize YouTube video transcripts into concise, actionable insights.\n- Focus on the core arguments and educational value.\n- Ignore filler text like \"subscribe to my channel\" or \"welcome back\".\n- Structure your response with clear Headings and Bullet Points."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        0
+      ],
+      "id": "e2378595-b6c8-4d01-9253-f79c2de92804",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "command": "=python -I -m youtube_transcript_api {{ $json.body.youtube_url.replace(\"https://www.youtube.com/watch?v=\", \"\").replace(\"https://youtu.be/\", \"\").split(\"?\")[0].split(\"&\")[0] }} --format json"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        48
+      ],
+      "id": "4bf3e879-990b-43de-b1c8-ade33cec669b",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get the raw text from Python\nconst rawOutput = items[0].json.stdout;\n\nlet transcriptData;\nlet fullText = \"\";\n\ntry {\n  // 2. Parse the JSON string into real data\n  transcriptData = JSON.parse(rawOutput);\n\n  // 3. FIX: Handle the \"Double List\" [[...]] issue if it exists\n  if (Array.isArray(transcriptData) && Array.isArray(transcriptData[0])) {\n    transcriptData = transcriptData[0];\n  }\n\n  // 4. Extract just the text and join it\n  fullText = transcriptData.map(item => item.text).join(\" \");\n\n} catch (error) {\n  // Fallback if parsing fails\n  fullText = \"Error parsing transcript: \" + error.message;\n}\n\n// 5. Output clean data for the AI Agent\nreturn [{\n  json: {\n    transcript: fullText\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        48
+      ],
+      "id": "3bc21564-eeda-4011-8528-7e08187eca60",
+      "name": "Code1"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "print-economic-correction-apr.trycloudflare.com",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "66",
+            "accept": "*/*",
+            "accept-encoding": "gzip",
+            "accept-language": "en-GB,en-IN;q=0.9,en-US;q=0.8,en;q=0.7",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "13.233.94.147",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "IN",
+            "cf-ray": "9a49644c4501ff6b-DEL",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "b2bf5d2f-0084-4a11-a109-3fad93347881",
+            "cf-worker": "trycloudflare.com",
+            "connection": "keep-alive",
+            "content-type": "application/json",
+            "forwarded": "for=223.233.73.44;host=print-economic-correction-apr.trycloudflare.com;proto=https",
+            "origin": "https://workflow-hub-hzy8.vercel.app",
+            "priority": "u=1, i",
+            "referer": "https://workflow-hub-hzy8.vercel.app/dashboard?service=meeting",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-forwarded-for": "223.233.73.44,13.233.94.147",
+            "x-forwarded-host": "workflow-hub-hzy8.vercel.app",
+            "x-forwarded-proto": "https",
+            "x-vercel-forwarded-for": "223.233.73.44",
+            "x-vercel-id": "bom1::xpt2g-1764160170419-19247aadb0b8",
+            "x-vercel-ja4-digest": "t13d1516h2_8daaf6152771_d8a2da3f94cd",
+            "x-vercel-oidc-token": "eyJ0eXAiOiJKV1QiLCJraWQiOiJtcmstNDMwMmVjMWI2NzBmNDhhOThhZDYxZGFkZTRhMjNiZTciLCJhbGciOiJSUzI1NiJ9.eyJwbGFuIjoiaG9iYnkiLCJpYXQiOjE3NjQxNTkzNzYsImF1ZCI6Imh0dHBzOlwvXC92ZXJjZWwuY29tXC9zaGFyZHVsLWdodXNhcnMtcHJvamVjdHMiLCJlbnZpcm9ubWVudCI6InByb2R1Y3Rpb24iLCJwcm9qZWN0X2lkIjoicHJqX05tMFFIZk9zUHBPSnVUdnA3d3ZYd3IybGlwSHkiLCJuYmYiOjE3NjQxNTkzNzYsInByb2plY3QiOiJ3b3JrZmxvdy1odWItaHp5OCIsIm93bmVyIjoic2hhcmR1bC1naHVzYXJzLXByb2plY3RzIiwiaXNzIjoiaHR0cHM6XC9cL29pZGMudmVyY2VsLmNvbVwvc2hhcmR1bC1naHVzYXJzLXByb2plY3RzIiwiZXhwIjoxNzY0MTYyOTc2LCJzY29wZSI6Im93bmVyOnNoYXJkdWwtZ2h1c2Fycy1wcm9qZWN0czpwcm9qZWN0OndvcmtmbG93LWh1Yi1oenk4OmVudmlyb25tZW50OnByb2R1Y3Rpb24iLCJvd25lcl9pZCI6InRlYW1fNmFjdTB4NUE3aWc1OUFaMTBqNWF5MWY3IiwidmVyY2VsX2lkIjoiYm9tMTo6bGt4bHotMTc2NDE1OTM3NjU3Ny1kYTljYjA3NmMzNzkiLCJzdWIiOiJvd25lcjpzaGFyZHVsLWdodXNhcnMtcHJvamVjdHM6cHJvamVjdDp3b3JrZmxvdy1odWItaHp5ODplbnZpcm9ubWVudDpwcm9kdWN0aW9uIn0.IyVvCuleezZIJmqnfaK_d1WOEN_QhY8nB03z_QPOclW_1pQ_KZuk1y7Bu782-vlFZvjt-1YaHEQ1O24vf09CknKGnFiXmm7joM1Ov5CGJAaMFvcQ0kbaNjaNKGuQ0WTwpotk6IK_REX7fbEz-A_T7OgYONvLDVhJ2O2EUkhTbNtVAO5e2wJJjWXQhD6rS6qtlYUz_hARZ6WNQp6e4T0a1c0-0qezsfWLoyb7wm5H5ytHSy3_C7ctS3L8X9TM9oNJ3JKoVNdfW_BPMLkr6Qm3cPLxSsgmGiE3n4sgl-JW_UmE1v8mx5O2r3K0aGy1Ld5RZNfsNUxw5uiYROYFC-frGQ",
+            "x-vercel-proxied-for": "223.233.73.44",
+            "x-vercel-proxy-signature": "Bearer 967bb812b75690001daf2e232e79f381b57d5142a39e3c74c5f2a4c73355a1da",
+            "x-vercel-proxy-signature-ts": "1764160470"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "youtube_url": "https://youtu.be/5MuIMqhT8DM?si=PX7extgLT39R8vQG"
+          },
+          "webhookUrl": "https://print-economic-correction-apr.trycloudflare.com /webhook/youtubeSummarizer",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dce3080f-4ae9-47d3-a424-8b7a6ec6156f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52eb1fb1e253086810d18d99b273a805e985287a97ca9820ce0a773de8d31a60"
+  },
+  "id": "g1Nkb5uimK0f6aqN",
+  "tags": []
+}
