@@ -64,10 +64,18 @@ export default function VideoSummarizer() {
         }
     };
 
-    const getProxyUrl = (url) => {
+    const getProxyUrl = (url, isFileUpload = false) => {
         if (!url) return "";
 
-        // 1. Force Vercel Proxy for Tailscale URLs to avoid CORS errors
+        // 1. BYPASS Proxy for File Uploads to avoid Vercel's 4.5MB Payload Limit
+        // Direct upload to n8n allows unlimited file size.
+        // NOTE: This requires n8n to have CORS configured (N8N_DEFAULT_CORS_ORIGIN=*)
+        if (isFileUpload && url.includes('.ts.net')) {
+            return url;
+        }
+
+        // 2. Force Vercel Proxy for standard JSON requests (Tailscale)
+        // This solves CORS for normal API calls (Email/Meeting)
         if (url.includes('.ts.net')) {
             try {
                 const urlObj = new URL(url);
@@ -78,7 +86,7 @@ export default function VideoSummarizer() {
             }
         }
 
-        // 2. Localhost fallback
+        // 3. Localhost fallback
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
             const webhookIndex = url.indexOf('/webhook');
             if (webhookIndex !== -1) {
@@ -86,7 +94,7 @@ export default function VideoSummarizer() {
             }
         }
 
-        // 3. Fallback
+        // 4. Fallback
         return url;
     };
 
@@ -110,7 +118,8 @@ export default function VideoSummarizer() {
                 setUploadProgress(prev => Math.min(prev + 10, 90));
             }, 500);
 
-            const proxyUrl = getProxyUrl(currentWebhookUrl);
+            // BYPASS PROXY for file uploads to avoid 413 Payload Too Large
+            const proxyUrl = getProxyUrl(currentWebhookUrl, true);
             const response = await fetch(proxyUrl, {
                 method: "POST",
                 headers: {
