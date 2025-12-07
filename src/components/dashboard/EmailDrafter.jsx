@@ -71,13 +71,19 @@ export default function EmailDrafter() {
     const getProxyUrl = (url) => {
         if (!url) return "";
 
-        // 1. If it is a Tailscale URL (Production), return it AS-IS.
-        // Do NOT rewrite it. Direct HTTPS access is safe and required for Vercel.
+        // 1. Force Vercel Proxy for Tailscale URLs to avoid CORS errors
+        // The browser blocks direct requests to .ts.net, so we must route through /local-n8n
         if (url.includes('.ts.net')) {
-            return url;
+            try {
+                const urlObj = new URL(url);
+                return `/local-n8n${urlObj.pathname}${urlObj.search}`;
+            } catch (e) {
+                console.error("Invalid URL:", url);
+                return url;
+            }
         }
 
-        // 2. Only use the local proxy if we are actually running on Localhost
+        // 2. Localhost fallback (Standard development proxy)
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
             const webhookIndex = url.indexOf('/webhook');
             if (webhookIndex !== -1) {
@@ -85,7 +91,7 @@ export default function EmailDrafter() {
             }
         }
 
-        // 3. Fallback: Return the original URL
+        // 3. Fallback
         return url;
     };
 
